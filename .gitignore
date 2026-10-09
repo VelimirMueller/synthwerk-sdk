@@ -1,0 +1,15 @@
+# OS and editors
+.DS_Store
+.idea/
+.vscode/
+
+# Node
+node_modules/
+*.tsbuildinfo
+
+# Build output
+dist/
+coverage/
+
+# Fonts fetched at build time (never commit font binaries without their OFL text)
+.cache/
