@@ -2,8 +2,10 @@ import { describe, expect, it } from 'vitest'
 import { contrastRatio, grade, luminance, round2 } from '../../../packages/tokens/src/contrast.ts'
 import { resolveColors } from '../../../packages/tokens/src/css.ts'
 import {
+  gradients,
   type Mode,
   modes,
+  type Primitive,
   primitives,
   type SemanticColor,
   serviceNames,
@@ -37,6 +39,7 @@ const TEXT: readonly SemanticColor[] = [
 ]
 const SURFACES: readonly SemanticColor[] = ['bg', 'surface', 'surface-2']
 const AA_TEXT = 4.5
+const AAA_TEXT = 7
 const AA_UI = 3
 
 /** `color` at `alpha` percent painted over an opaque `backdrop` (sRGB source-over), as #RRGGBB. */
@@ -57,7 +60,7 @@ describe('contrastRatio', () => {
   })
 
   it('contrastRatio - argument order swapped - same ratio', () => {
-    expect(contrastRatio('#007874', '#F7F7FB')).toBe(contrastRatio('#F7F7FB', '#007874'))
+    expect(contrastRatio('#4F46E5', '#FAFAFA')).toBe(contrastRatio('#FAFAFA', '#4F46E5'))
   })
 
   it('luminance - short or invalid hex - throws', () => {
@@ -96,9 +99,9 @@ describe.each(combos)('WCAG AA · %s · %s', (theme, mode) => {
     'service %s badge text on badge fill over %s - ratio - at least 4.5',
     (service, surface) => {
       const s = services[service]
-      const text = primitives[mode === 'dark' ? s.neon : s.deep]
+      const text = primitives[mode === 'dark' ? s.dark : s.light]
       const tint = themes[theme][mode].effects['badge-service-tint']
-      const fill = composite(primitives[s.neon], tint, c[surface])
+      const fill = composite(primitives[s.dark], tint, c[surface])
       expect(contrastRatio(text, fill)).toBeGreaterThanOrEqual(AA_TEXT)
     }
   )
@@ -106,7 +109,7 @@ describe.each(combos)('WCAG AA · %s · %s', (theme, mode) => {
   it.each(serviceNames.flatMap((s) => SURFACES.map((surface) => [s, surface] as const)))(
     'service %s text on %s - ratio - at least 4.5',
     (service, surface) => {
-      const accent = primitives[mode === 'dark' ? services[service].neon : services[service].deep]
+      const accent = primitives[mode === 'dark' ? services[service].dark : services[service].light]
       expect(contrastRatio(accent, c[surface])).toBeGreaterThanOrEqual(AA_TEXT)
     }
   )
@@ -119,9 +122,10 @@ describe('brand doc §6 tables', () => {
     it.each(textTable[key(theme, mode)])(
       '%s - computed ratios - equal the doc (%s / %s, %s)',
       (token, onBg, onSurface2, docGrade) => {
-        if (token === 'accent-fg/accent') {
-          expect(round2(contrastRatio(c['accent-fg'], c.accent))).toBe(onBg)
-          expect(grade(contrastRatio(c['accent-fg'], c.accent))).toBe(docGrade)
+        if (token.includes('/')) {
+          const [fg, bg] = token.split('/') as [SemanticColor, SemanticColor]
+          expect(round2(contrastRatio(c[fg], c[bg]))).toBe(onBg)
+          expect(grade(contrastRatio(c[fg], c[bg]))).toBe(docGrade)
           return
         }
         const fg = c[token as SemanticColor]
@@ -144,37 +148,66 @@ describe('brand doc §6 tables', () => {
   })
 
   it.each(serviceNames)('service %s - computed ratios - equal the doc', (service) => {
-    const dark = ['void-950', 'void-850', 'zinc-950', 'zinc-850'] as const
-    const light = ['zinc-50', 'zinc-100', 'mist-50', 'mist-100'] as const
-    const neon = primitives[services[service].neon]
-    const deep = primitives[services[service].deep]
-    expect(dark.map((s) => round2(contrastRatio(neon, primitives[s])))).toEqual(
-      serviceTable[service].neon
+    const dark = ['graphite-950', 'graphite-850', 'black', 'zinc-850'] as const
+    const light = ['zinc-50', 'zinc-100', 'white'] as const
+    const d = primitives[services[service].dark]
+    const l = primitives[services[service].light]
+    expect(dark.map((s) => round2(contrastRatio(d, primitives[s])))).toEqual(
+      serviceTable[service].dark
     )
-    expect(light.map((s) => round2(contrastRatio(deep, primitives[s])))).toEqual(
-      serviceTable[service].deep
+    expect(light.map((s) => round2(contrastRatio(l, primitives[s])))).toEqual(
+      serviceTable[service].light
     )
   })
 
-  it('brand palette notes §3.2 and §6 - computed ratios - equal the doc', () => {
-    const paper = primitives['zinc-50']
-    const r = (a: string, b: string) => round2(contrastRatio(a, b))
-    expect(Math.round(contrastRatio(primitives['zinc-550'], paper) * 10) / 10).toBe(
-      brandNotes.steelOnPaper
-    )
-    expect(r(primitives['print-cyan'], paper)).toBe(brandNotes.printCyanOnPaper)
-    expect(r(primitives['print-magenta'], paper)).toBe(brandNotes.printMagentaOnPaper)
-    expect(r(primitives['neon-cyan'], paper)).toBe(brandNotes.neonCyanOnPaper)
-    expect(r(primitives['neon-magenta'], paper)).toBe(brandNotes.neonMagentaOnPaper)
-    expect(r(primitives['void-950'], primitives['neon-magenta'])).toBe(
-      brandNotes.accent2FgOnMagenta
-    )
-    expect(r(primitives.white, primitives['neon-magenta'])).toBe(brandNotes.whiteOnMagenta)
+  it('public presence notes (07c) - computed ratios - equal the doc', () => {
+    const r = (a: Primitive, b: Primitive) => round2(contrastRatio(primitives[a], primitives[b]))
+    expect(r('emerald-500', 'graphite-950')).toBe(brandNotes.emeraldOnNight)
+    expect(r('emerald-700', 'zinc-50')).toBe(brandNotes.emeraldPrintOnPaper)
+    expect(r('indigo-500', 'graphite-950')).toBe(brandNotes.indigoOnNight)
+    expect(r('indigo-600', 'zinc-50')).toBe(brandNotes.indigoPrintOnPaper)
+    expect(gradients['edge-light'].map((g) => r(g, 'zinc-50'))).toEqual([
+      ...brandNotes.edgeLightStopsOnPaper
+    ])
+    expect(gradients['edge-dark'].map((g) => r(g, 'graphite-950'))).toEqual([
+      ...brandNotes.edgeDarkStopsOnNight
+    ])
   })
 
-  it('print signal stops on paper - ratio - at least 3 (graphic, WCAG 1.4.11)', () => {
-    for (const stop of ['print-cyan', 'print-magenta'] as const) {
+  it('edge gradient stops on their page - ratio - at least 3 (graphic, WCAG 1.4.11)', () => {
+    for (const stop of gradients['edge-light']) {
       expect(contrastRatio(primitives[stop], primitives['zinc-50'])).toBeGreaterThanOrEqual(AA_UI)
     }
+    for (const stop of gradients['edge-dark']) {
+      expect(contrastRatio(primitives[stop], primitives['graphite-950'])).toBeGreaterThanOrEqual(
+        AA_UI
+      )
+    }
+  })
+})
+
+describe.each(modes)('contrast theme · %s - low-vision promise', (mode) => {
+  const c = resolveColors('contrast', mode)
+
+  it.each(TEXT.flatMap((t) => SURFACES.map((s) => [t, s] as const)))(
+    'text %s on %s - ratio - at least 7 (AAA)',
+    (text, surface) => {
+      expect(contrastRatio(c[text], c[surface])).toBeGreaterThanOrEqual(AAA_TEXT)
+    }
+  )
+
+  it.each(SURFACES)('border-control on %s - ratio - at least 4.5', (surface) => {
+    expect(contrastRatio(c['border-control'], c[surface])).toBeGreaterThanOrEqual(AA_TEXT)
+  })
+
+  it('effects - glow, edge glow, shadow, grid and badge tint - all off', () => {
+    const e = themes.contrast[mode].effects
+    expect([
+      e.glow,
+      e['glow-edge'],
+      e['shadow-card-v'],
+      e['texture-grid'],
+      e['badge-service-tint']
+    ]).toEqual(['none', 'none', 'none', 'none', 0])
   })
 })

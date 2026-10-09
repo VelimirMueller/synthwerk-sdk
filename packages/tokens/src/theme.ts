@@ -13,7 +13,7 @@ export const isThemeName = (value: unknown): value is ThemeName =>
  * Effective mode for a theme (brand doc §2 Q1).
  * 1. A stored `light` or `dark` always wins.
  * 2. A stored `system` follows the OS.
- * 3. Nothing stored: `default` follows the OS, `cyberpunk` is dark.
+ * 3. Nothing stored: `defaultMode[theme]` (both themes follow the OS).
  */
 export function resolveMode(theme: ThemeName, stored: StoredMode, systemDark: boolean): Mode {
   if (stored === 'light' || stored === 'dark') return stored
@@ -27,4 +27,4 @@ export function resolveMode(theme: ThemeName, stored: StoredMode, systemDark: bo
  * It copies the stored choice to `data-theme` and `data-mode` on `<html>`.
  * The CSS in `tokens.css` does the rest, also without JavaScript.
  */
-export const firstPaintScript = `(function(){try{var p=JSON.parse(localStorage.getItem('${PREFS_KEY}')||'{}')||{},d=document.documentElement;if(p.theme==='default'||p.theme==='cyberpunk')d.setAttribute('data-theme',p.theme);if(p.mode==='light'||p.mode==='dark'||p.mode==='system')d.setAttribute('data-mode',p.mode)}catch(e){}})()`
+export const firstPaintScript = `(function(){try{var p=JSON.parse(localStorage.getItem('${PREFS_KEY}')||'{}')||{},d=document.documentElement;if(p.theme==='default'||p.theme==='contrast')d.setAttribute('data-theme',p.theme);if(p.mode==='light'||p.mode==='dark'||p.mode==='system')d.setAttribute('data-mode',p.mode)}catch(e){}})()`

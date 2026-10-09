@@ -20,11 +20,10 @@ declare module 'opentype.js' {
     advanceWidth: number
     getPath(x: number, y: number, fontSize: number, options: RenderOptions, font: Font): Path
   }
-  interface Font {
+  export interface Font {
     unitsPerEm: number
-    stringToGlyphs(text: string): Glyph[]
+    charToGlyph(char: string): Glyph
     getKerningValue(left: Glyph, right: Glyph): number
-    variation: { set(coords: Record<string, number>): void }
     getPath(text: string, x: number, y: number, fontSize: number, options?: RenderOptions): Path
   }
   const opentype: { parse(buffer: ArrayBuffer): Font }

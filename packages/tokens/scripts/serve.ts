@@ -10,7 +10,8 @@ const types: Record<string, string> = {
   '.css': 'text/css; charset=utf-8',
   '.js': 'text/javascript; charset=utf-8',
   '.json': 'application/json; charset=utf-8',
-  '.svg': 'image/svg+xml'
+  '.svg': 'image/svg+xml',
+  '.ttf': 'font/ttf'
 }
 
 /** Serves the package folder on 127.0.0.1. Port 0 picks a free port. */

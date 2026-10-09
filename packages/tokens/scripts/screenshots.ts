@@ -23,6 +23,8 @@ async function bgFor(
   const context = await browser.newContext({
     viewport: { width: 1280, height: 900 },
     colorScheme,
+    // Reduced motion sets every token duration to 0.01ms: no shot catches a transition mid-way.
+    reducedMotion: 'reduce',
     deviceScaleFactor: 1
   })
   const page = await context.newPage()
@@ -34,6 +36,7 @@ async function bgFor(
   }
   await page.goto(`${url}demo/`)
   await page.waitForSelector('#primitives .swatch')
+  await page.evaluate(() => document.fonts.ready)
   const bg = await page.evaluate(() =>
     getComputedStyle(document.documentElement).getPropertyValue('--bg').trim()
   )
@@ -65,32 +68,24 @@ try {
       console.log(`     ${file}`)
     }
   }
-  // Nothing stored: default follows the OS, cyberpunk opens dark.
-  expect(
-    'default · nothing stored · OS light',
-    await bgFor({ theme: 'default' }, 'light'),
-    bg('default', 'light')
-  )
-  expect(
-    'default · nothing stored · OS dark',
-    await bgFor({ theme: 'default' }, 'dark'),
-    bg('default', 'dark')
-  )
+  // Nothing stored: both themes follow the OS.
+  for (const theme of themeNames) {
+    for (const os of ['light', 'dark'] as const) {
+      expect(`${theme} · nothing stored · OS ${os}`, await bgFor({ theme }, os), bg(theme, os))
+    }
+  }
   expect('no prefs at all · OS dark', await bgFor(null, 'dark'), bg('default', 'dark'))
+  expect('no prefs at all · OS light', await bgFor(null, 'light'), bg('default', 'light'))
   expect(
-    'cyberpunk · nothing stored · OS light',
-    await bgFor({ theme: 'cyberpunk' }, 'light'),
-    bg('cyberpunk', 'dark')
+    'contrast · stored system · OS dark',
+    await bgFor({ theme: 'contrast', mode: 'system' }, 'dark'),
+    bg('contrast', 'dark')
   )
+  // A 0.1.0 choice ("cyberpunk") is ignored: the page shows `default`.
   expect(
-    'cyberpunk · stored system · OS light',
-    await bgFor({ theme: 'cyberpunk', mode: 'system' }, 'light'),
-    bg('cyberpunk', 'light')
-  )
-  expect(
-    'cyberpunk · stored system · OS dark',
-    await bgFor({ theme: 'cyberpunk', mode: 'system' }, 'dark'),
-    bg('cyberpunk', 'dark')
+    'legacy cyberpunk · stored dark · OS light',
+    await bgFor({ theme: 'cyberpunk', mode: 'dark' }, 'light'),
+    bg('default', 'dark')
   )
 } finally {
   await browser.close()
