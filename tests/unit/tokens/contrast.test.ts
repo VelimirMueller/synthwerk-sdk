@@ -3,6 +3,7 @@ import { contrastRatio, grade, luminance, round2 } from '../../../packages/token
 import { resolveColors } from '../../../packages/tokens/src/css.ts'
 import {
   gradients,
+  groupNames,
   type Mode,
   modes,
   type Primitive,
@@ -113,6 +114,29 @@ describe.each(combos)('WCAG AA · %s · %s', (theme, mode) => {
       expect(contrastRatio(accent, c[surface])).toBeGreaterThanOrEqual(AA_TEXT)
     }
   )
+})
+
+const groupCombos = groupNames.flatMap((group) => combos.map(([t, m]) => [group, t, m] as const))
+const GROUP_TEXT: readonly SemanticColor[] = ['accent-2-text']
+
+describe.each(groupCombos)('group %s · %s · %s', (group, theme, mode) => {
+  const c = resolveColors(theme, mode, group)
+  const min = theme === 'contrast' ? AAA_TEXT : AA_TEXT
+
+  it.each(GROUP_TEXT.flatMap((t) => SURFACES.map((s) => [t, s] as const)))(
+    'text %s on %s - ratio - meets the theme promise (AA, contrast AAA)',
+    (text, surface) => {
+      expect(contrastRatio(c[text], c[surface])).toBeGreaterThanOrEqual(min)
+    }
+  )
+
+  it('accent-2-fg on accent-2 - ratio - at least 4.5', () => {
+    expect(contrastRatio(c['accent-2-fg'], c['accent-2'])).toBeGreaterThanOrEqual(AA_TEXT)
+  })
+
+  it.each(SURFACES)('ring (UI) on %s - ratio - at least 3', (surface) => {
+    expect(contrastRatio(c.ring, c[surface])).toBeGreaterThanOrEqual(AA_UI)
+  })
 })
 
 describe('brand doc §6 tables', () => {

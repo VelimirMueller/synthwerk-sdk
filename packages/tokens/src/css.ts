@@ -2,10 +2,16 @@
 import {
   brand,
   components,
+  defaultGroup,
   defaultMode,
   fonts,
   type Gradient,
+  type GroupColor,
+  type GroupName,
   gradients,
+  groupColorNames,
+  groupNames,
+  groups,
   type Mode,
   modes,
   motion,
@@ -112,13 +118,35 @@ export const selectors = {
 } as const satisfies Record<ThemeName, Record<'light' | 'dark' | 'systemDark', string>>
 
 /** Every element that can carry its own theme scope. */
-const SCOPE = ':root, [data-theme], [data-service]'
+const SCOPE = ':root, [data-theme], [data-group], [data-service]'
+
+const isGroupColor = (name: string): name is GroupColor =>
+  (groupColorNames as readonly string[]).includes(name)
+
+/** The group colours of `group`, as `var(--group-<group>-…)` references. */
+function groupLines(group: GroupName): string[] {
+  const accent = v(`group-${group}-accent`)
+  return [
+    decl('accent-2', accent),
+    decl('accent-2-fg', v(`group-${group}-fg`)),
+    decl('accent-2-text', accent),
+    decl('ring', accent),
+    decl('group-fill', v(groups[group].fill))
+  ]
+}
 
 // ---------------------------------------------------------------- tokens.css
 
 function themeModeLines(theme: ThemeName, mode: Mode): string[] {
   const tm = themes[theme][mode]
-  const lines = semanticColorNames.map((name) => decl(name, v(tm.colors[name])))
+  const lines = semanticColorNames
+    .filter((name) => !isGroupColor(name))
+    .map((name) => decl(name, v(tm.colors[name])))
+  for (const group of groupNames) {
+    const g = groups[group].themes[theme][mode]
+    lines.push(decl(`group-${group}-accent`, v(g.accent)))
+    lines.push(decl(`group-${group}-fg`, v(g.fg)))
+  }
   for (const [name, value] of Object.entries(renderEffects(tm.effects)))
     lines.push(decl(name, value))
   for (const service of serviceNames) {
@@ -172,6 +200,18 @@ export function renderTokensCss(): string {
     out.push(block(selectors[theme].systemDark, themeModeLines(theme, 'dark'), '  '))
   }
   out.push('}', '')
+
+  out.push('/* 2b. Group accent (VM. studio): accent-2, accent-2-fg, accent-2-text, ring. */')
+  out.push(block(':where(:root, [data-theme], [data-group])', groupLines(defaultGroup)))
+  for (const group of groupNames) {
+    out.push(
+      block(
+        `[data-group="${group}"], [data-group="${group}"] [data-theme]:not([data-group])`,
+        groupLines(group)
+      )
+    )
+  }
+  out.push('')
 
   out.push('/* 3. Service accent: the only per-service variation. */')
   out.push(
@@ -244,6 +284,7 @@ const darkVariant = `@custom-variant dark {
 export function renderTailwindCss(): string {
   const lines: string[] = []
   for (const name of semanticColorNames) lines.push(decl(`color-${name}`, v(name)))
+  lines.push(decl('color-group', v('group-fill')))
   lines.push(decl('color-service', v('service-accent')))
   lines.push(decl('color-service-text', v('service-accent-text')))
   for (const [name, font] of Object.entries(fonts)) lines.push(decl(`font-${name}`, font.stack))
@@ -276,9 +317,29 @@ export interface ResolvedThemeMode {
   readonly effects: Record<keyof SemanticEffects, string>
 }
 
-/** Semantic colours of one theme × mode as hex values. */
-export function resolveColors(theme: ThemeName, mode: Mode): Record<SemanticColor, string> {
-  const refs = themes[theme][mode].colors
+/** Semantic colours of one theme × mode × group as primitive names. */
+export function resolveRefs(
+  theme: ThemeName,
+  mode: Mode,
+  group: GroupName = defaultGroup
+): Record<SemanticColor, Primitive> {
+  const g = groups[group].themes[theme][mode]
+  const groupRefs: Record<GroupColor, Primitive> = {
+    'accent-2': g.accent,
+    'accent-2-fg': g.fg,
+    'accent-2-text': g.accent,
+    ring: g.accent
+  }
+  return { ...themes[theme][mode].colors, ...groupRefs }
+}
+
+/** Semantic colours of one theme × mode × group as hex values. */
+export function resolveColors(
+  theme: ThemeName,
+  mode: Mode,
+  group: GroupName = defaultGroup
+): Record<SemanticColor, string> {
+  const refs = resolveRefs(theme, mode, group)
   return Object.fromEntries(semanticColorNames.map((n) => [n, primitives[refs[n]]])) as Record<
     SemanticColor,
     string
@@ -308,6 +369,26 @@ export function renderTokensJson(): string {
     themes: resolved,
     defaultMode,
     components,
+    groups: Object.fromEntries(
+      groupNames.map((group) => [
+        group,
+        {
+          fill: primitives[groups[group].fill],
+          themes: Object.fromEntries(
+            themeNames.map((theme) => [
+              theme,
+              Object.fromEntries(
+                modes.map((mode) => {
+                  const g = groups[group].themes[theme][mode]
+                  return [mode, { accent: primitives[g.accent], fg: primitives[g.fg] }]
+                })
+              )
+            ])
+          )
+        }
+      ])
+    ),
+    defaultGroup,
     services: Object.fromEntries(
       serviceNames.map((s) => [
         s,

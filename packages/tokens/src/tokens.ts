@@ -54,14 +54,17 @@ export const primitives = {
   'indigo-600': '#4F46E5',
   'indigo-700': '#4338CA',
   'indigo-800': '#3730A3',
+  'violet-300': '#C4B5FD',
   'violet-400': '#A78BFA',
   'violet-500': '#8B5CF6',
   'violet-600': '#7C3AED',
   'violet-700': '#6D28D9',
+  'violet-800': '#5B21B6',
   'pink-400': '#F472B6',
   'pink-700': '#BE185D',
   'amber-300': '#FCD34D',
   'amber-400': '#FBBF24',
+  'amber-500': '#F59E0B',
   'amber-700': '#B45309',
   'amber-800': '#92400E',
   'amber-900': '#78350F',
@@ -413,6 +416,79 @@ export const services = {
   identity: { dark: 'blue-400', light: 'blue-700' },
   widgets: { dark: 'teal-400', light: 'teal-700' }
 } as const satisfies Record<ServiceName, { dark: Primitive; light: Primitive }>
+
+// ---------------------------------------------------------------- 4b. Group accent
+
+/**
+ * VM. studio groups (vm-brand playbook B-18 … B-21). Every group shares the D-41 base and
+ * changes only `accent-2`, `accent-2-fg`, `accent-2-text` and `ring`. Emerald stays status.
+ * - `flagship`: synthwerk family. Indigo, the values of the themes above.
+ * - `vlm`: every `vlm-*` repo. Violet, the neighbour of indigo.
+ * - `rig`: private tools (tix, rig, dual-review …). Amber. Never use it on status chips.
+ */
+export const groupNames = ['flagship', 'vlm', 'rig'] as const
+export type GroupName = (typeof groupNames)[number]
+
+/** `accent` is `accent-2`, `accent-2-text` and `ring`. `fg` is text on an `accent` fill. */
+export interface GroupMode {
+  readonly accent: Primitive
+  readonly fg: Primitive
+}
+
+export interface Group {
+  /** Graphic fill for glows, lines and banner art. Never text. */
+  readonly fill: Primitive
+  readonly themes: Readonly<Record<ThemeName, Readonly<Record<Mode, GroupMode>>>>
+}
+
+/** The semantic colours a group decides. Theme blocks never declare these directly. */
+export const groupColorNames = ['accent-2', 'accent-2-fg', 'accent-2-text', 'ring'] as const
+export type GroupColor = (typeof groupColorNames)[number]
+
+export const groups = {
+  flagship: {
+    fill: 'indigo-500',
+    themes: {
+      default: {
+        light: { accent: 'indigo-600', fg: 'white' },
+        dark: { accent: 'indigo-400', fg: 'graphite-950' }
+      },
+      contrast: {
+        light: { accent: 'indigo-800', fg: 'white' },
+        dark: { accent: 'indigo-300', fg: 'black' }
+      }
+    }
+  },
+  vlm: {
+    fill: 'violet-500',
+    themes: {
+      default: {
+        light: { accent: 'violet-600', fg: 'white' },
+        dark: { accent: 'violet-400', fg: 'graphite-950' }
+      },
+      contrast: {
+        light: { accent: 'violet-800', fg: 'white' },
+        dark: { accent: 'violet-300', fg: 'black' }
+      }
+    }
+  },
+  rig: {
+    fill: 'amber-500',
+    themes: {
+      default: {
+        light: { accent: 'amber-700', fg: 'white' },
+        dark: { accent: 'amber-400', fg: 'graphite-950' }
+      },
+      contrast: {
+        light: { accent: 'amber-900', fg: 'white' },
+        dark: { accent: 'amber-300', fg: 'black' }
+      }
+    }
+  }
+} as const satisfies Record<GroupName, Group>
+
+/** Missing `data-group` = this group. Its values equal the theme values above. */
+export const defaultGroup: GroupName = 'flagship'
 
 // ---------------------------------------------------------------- 5. Static tokens
 

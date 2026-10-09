@@ -11,6 +11,10 @@ import {
 } from '../../../packages/tokens/src/css.ts'
 import {
   components,
+  defaultGroup,
+  groupColorNames,
+  groupNames,
+  groups,
   modes,
   motion,
   semanticColorNames,
@@ -71,8 +75,10 @@ const findRule = (selector: string, media: string | null = null) => {
 const DARK_MEDIA = '@media (prefers-color-scheme: dark)'
 
 /** Every property a theme × mode block must declare. */
+const groupColors = new Set<string>(groupColorNames)
 const requiredInEveryBlock = [
-  ...semanticColorNames.map((n) => `--${n}`),
+  ...semanticColorNames.filter((n) => !groupColors.has(n)).map((n) => `--${n}`),
+  ...groupNames.flatMap((g) => [`--group-${g}-accent`, `--group-${g}-fg`]),
   ...semanticEffectNames.map((n) => `--${n}`),
   ...serviceNames.map((s) => `--service-${s}-text`),
   'color-scheme'
@@ -114,8 +120,33 @@ describe('tokens.css structure', () => {
   })
 
   it('component tokens - scope rule - declared on every theme scope', () => {
-    const scope = findRule(':root, [data-theme], [data-service]')
+    const scope = findRule(':root, [data-theme], [data-group], [data-service]')
     expect([...scope.decls.keys()]).toEqual(Object.keys(components).map((n) => `--${n}`))
+  })
+
+  it.each(blocks)(
+    '%s block - group colours - never declared (the group layer owns them)',
+    (_l, rule) => {
+      for (const name of groupColorNames) expect(rule.decls.has(`--${name}`)).toBe(false)
+    }
+  )
+
+  it('group default rule - zero specificity - uses the default group', () => {
+    const rule = findRule(':where(:root, [data-theme], [data-group])')
+    expect(rule.decls.get('--accent-2')).toBe(`var(--group-${defaultGroup}-accent)`)
+    expect(rule.decls.get('--ring')).toBe(`var(--group-${defaultGroup}-accent)`)
+  })
+
+  it.each(groupNames)('group %s - rule - sets accent-2, ring, fg and fill', (group) => {
+    const rule = findRule(
+      `[data-group="${group}"], [data-group="${group}"] [data-theme]:not([data-group])`
+    )
+    const accent = `var(--group-${group}-accent)`
+    expect(rule.decls.get('--accent-2')).toBe(accent)
+    expect(rule.decls.get('--accent-2-text')).toBe(accent)
+    expect(rule.decls.get('--ring')).toBe(accent)
+    expect(rule.decls.get('--accent-2-fg')).toBe(`var(--group-${group}-fg)`)
+    expect(rule.decls.get('--group-fill')).toBe(`var(--${groups[group].fill})`)
   })
 
   it.each(serviceNames)('service %s - rule - sets accent and mode-aware text', (service) => {
