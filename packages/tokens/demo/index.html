@@ -4,10 +4,40 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>@synthwerk/tokens demo</title>
+    <link rel="icon" href="../assets/synthwerk-favicon.svg" type="image/svg+xml">
     <!-- First-paint script (blocking, before the stylesheet). Apps inline `firstPaintScript` instead. -->
     <script src="../dist/first-paint.js"></script>
     <link rel="stylesheet" href="../dist/tokens.css">
     <style>
+    /* Demo only: fonts from the pinned cache (pnpm --filter @synthwerk/tokens fonts). Apps self-host. */
+    @font-face {
+      font-family: "Space Mono";
+      src:
+        local("Space Mono"),
+        url("../.cache/fonts/spacemono/SpaceMono-Regular.ttf") format("truetype");
+      font-weight: 400;
+      font-display: swap;
+    }
+    @font-face {
+      font-family: "Space Mono";
+      src:
+        local("Space Mono Bold"),
+        url("../.cache/fonts/spacemono/SpaceMono-Bold.ttf") format("truetype");
+      font-weight: 700;
+      font-display: swap;
+    }
+    @font-face {
+      font-family: Inter;
+      src: url("../.cache/fonts/inter/Inter%5Bopsz,wght%5D.ttf") format("truetype");
+      font-weight: 100 900;
+      font-display: swap;
+    }
+    @font-face {
+      font-family: "JetBrains Mono";
+      src: url("../.cache/fonts/jetbrainsmono/JetBrainsMono%5Bwght%5D.ttf") format("truetype");
+      font-weight: 100 800;
+      font-display: swap;
+    }
     * {
       box-sizing: border-box;
     }
@@ -18,31 +48,59 @@
       font-family: var(--font-sans);
       font-size: var(--text-base);
       line-height: var(--text-base-line-height);
+      -webkit-font-smoothing: antialiased;
     }
+    /* Edge glows at the top of the page. Never behind text (07c). */
     body::before {
       content: "";
-      position: fixed;
-      inset: 0;
+      position: absolute;
+      inset: 0 0 auto;
+      height: 560px;
       pointer-events: none;
-      background: var(--texture-grid);
+      background: var(--glow-edge);
     }
     main {
       position: relative;
-      max-width: 1120px;
+      max-width: 1240px;
       margin: 0 auto;
       padding: 24px 16px 64px;
     }
-    header {
+    .label,
+    .overline {
+      font-family: var(--font-display);
+      font-size: var(--text-xs);
+      line-height: var(--text-xs-line-height);
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--fg-subtle);
+    }
+
+    /* ---- nav: floating pill, like velimir-mueller.de ---- */
+    nav {
       display: flex;
       flex-wrap: wrap;
-      gap: 16px;
+      gap: 8px;
       align-items: center;
       justify-content: space-between;
-      padding-bottom: 16px;
-      border-bottom: 1px solid var(--border);
+      width: fit-content;
+      max-width: 100%;
+      margin: 0 auto 32px;
+      padding: 8px 8px 8px 12px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-pill);
+      background: color-mix(in srgb, var(--surface) 82%, transparent);
+      box-shadow: var(--shadow-card-v);
+      backdrop-filter: blur(12px);
     }
-    header img {
-      height: 48px;
+    nav .brand {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      padding-right: 12px;
+      border-right: 1px solid var(--border);
+    }
+    nav .brand img {
+      height: 28px;
       width: auto;
     }
     .logo-dark,
@@ -52,19 +110,12 @@
     [data-effective="dark"] .logo-dark {
       display: block;
     }
-    .controls {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 12px;
-    }
     fieldset {
       display: flex;
-      gap: 4px;
+      gap: 2px;
       margin: 0;
-      padding: 4px;
-      border: 1px solid var(--border-control);
-      border-radius: var(--radius-pill);
-      background: var(--surface);
+      padding: 0;
+      border: 0;
     }
     legend {
       position: absolute;
@@ -75,12 +126,16 @@
     }
     fieldset label {
       position: relative;
-      padding: 4px 12px;
+      padding: 8px 16px;
       border-radius: var(--radius-pill);
+      font-family: var(--font-display);
       font-size: var(--text-sm);
       color: var(--fg-muted);
       cursor: pointer;
       transition: background-color var(--duration-fast) var(--motion-ease-standard);
+    }
+    fieldset label:hover {
+      color: var(--fg);
     }
     fieldset input {
       position: absolute;
@@ -89,28 +144,177 @@
     fieldset label:has(input:checked) {
       background: var(--btn-primary-bg);
       color: var(--btn-primary-fg);
+      font-weight: 700;
     }
     fieldset label:has(input:focus-visible) {
       outline: var(--focus-outline);
       outline-offset: var(--focus-outline-offset);
     }
-    h1,
-    h2 {
+    .sep {
+      width: 1px;
+      align-self: stretch;
+      background: var(--border);
+    }
+
+    /* ---- bento cards ---- */
+    .bento {
+      display: grid;
+      grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+      gap: 16px;
+    }
+    @media (max-width: 860px) {
+      .bento {
+        grid-template-columns: minmax(0, 1fr);
+      }
+    }
+    .card {
+      position: relative;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: var(--card-radius);
+      box-shadow: var(--card-shadow);
+      padding: 24px;
+    }
+    .hero {
+      padding: 24px 24px 28px;
+    }
+    .status {
+      display: inline-flex;
+      gap: 8px;
+      align-items: center;
+      padding: 3px 12px;
+      border-radius: var(--radius-pill);
+      border: 1px solid color-mix(in srgb, var(--success) 40%, transparent);
+      background: color-mix(in srgb, var(--success) 10%, transparent);
+      color: var(--success);
+      font-family: var(--font-display);
+      font-size: 11px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+    .status::before {
+      content: "";
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+    h1 {
+      margin: 40px 0 28px;
       font-family: var(--font-display);
       font-weight: 700;
+      font-size: clamp(3.25rem, 10vw, 7rem);
+      line-height: 0.95;
+      letter-spacing: -0.04em;
     }
-    h2 {
-      margin: 40px 0 4px;
+    .role {
+      display: grid;
+      grid-template-columns: 48px 1fr;
+      column-gap: 16px;
+      align-items: center;
+    }
+    .accent-line {
+      width: 44px;
+      height: 2px;
+      background: var(--accent-2);
+    }
+    .role .title {
+      font-family: var(--font-display);
+      font-size: 1.0625rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--fg-muted);
+    }
+    .role .label {
+      grid-column: 2;
+    }
+    .tagline {
+      max-width: 34rem;
+      margin: 28px 0 32px 16px;
+      padding-left: 16px;
+      border-left: 2px solid var(--border);
+      color: var(--fg-muted);
+      font-size: var(--text-lg);
+      line-height: var(--text-lg-line-height);
+    }
+    .row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+    }
+    .side {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      text-align: center;
+      overflow: hidden;
+    }
+    .side::before {
+      content: "";
+      position: absolute;
+      inset: 12px;
+      border-radius: calc(var(--card-radius) - 12px);
+      background: var(--texture-grid);
+      pointer-events: none;
+    }
+    .side > * {
+      position: relative;
+    }
+    .side h3 {
+      margin: 0;
+      font-family: var(--font-display);
       font-size: var(--text-2xl);
       line-height: var(--text-2xl-line-height);
     }
-    .overline {
-      font-family: var(--font-mono);
-      font-size: var(--text-xs);
-      line-height: var(--text-xs-line-height);
-      letter-spacing: 0.14em;
-      text-transform: uppercase;
-      color: var(--fg-subtle);
+    .side p {
+      margin: 0;
+      max-width: 22rem;
+      color: var(--fg-muted);
+      font-size: var(--text-sm);
+      line-height: var(--text-sm-line-height);
+    }
+    .snippet {
+      width: 100%;
+      max-width: 18rem;
+      padding: 10px 16px;
+      border-radius: var(--radius-sm);
+      background: var(--accent);
+      color: var(--accent-fg);
+      font-family: var(--font-display);
+      font-size: var(--text-sm);
+      text-align: left;
+    }
+    .snippet span {
+      opacity: 0.6;
+    }
+    .more {
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: var(--text-sm);
+      color: var(--fg);
+      text-underline-offset: 6px;
+    }
+
+    /* ---- sections ---- */
+    section {
+      margin-top: 16px;
+    }
+    h2 {
+      margin: 0 0 4px;
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: var(--text-2xl);
+      line-height: var(--text-2xl-line-height);
+      letter-spacing: -0.02em;
+    }
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 16px;
     }
     .grid {
       display: grid;
@@ -133,7 +337,8 @@
     .swatch div:last-child {
       padding: 8px 10px;
     }
-    code {
+    code,
+    pre {
       font-family: var(--font-mono);
       font-size: var(--text-xs);
     }
@@ -162,19 +367,15 @@
       font-size: var(--text-xs);
       color: var(--fg-subtle);
     }
-    .row {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 12px;
-      align-items: center;
-      margin-top: 16px;
-    }
     .btn {
       font: inherit;
-      font-weight: 600;
-      padding: 8px 16px;
-      border-radius: var(--radius-sm);
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: var(--text-sm);
+      padding: 12px 24px;
+      border-radius: var(--radius-pill);
       cursor: pointer;
+      text-decoration: none;
       transition:
         transform var(--duration-instant) var(--motion-ease-standard),
         box-shadow var(--duration-fast) var(--motion-ease-standard);
@@ -210,26 +411,23 @@
     a:hover {
       color: var(--link-fg-hover);
     }
-    input[type="text"] {
+    input[type="text"],
+    select {
       font: inherit;
+      font-size: var(--text-sm);
       padding: 8px 12px;
       border-radius: var(--radius-sm);
       border: 1px solid var(--input-border);
       background: var(--input-bg);
       color: var(--fg);
     }
+    select {
+      border-color: var(--select-border);
+    }
     input[type="text"]:focus {
       outline: none;
       border-color: var(--input-border-focus);
       box-shadow: 0 0 0 1px var(--input-border-focus);
-    }
-    select {
-      font: inherit;
-      padding: 8px 12px;
-      border-radius: var(--radius-sm);
-      border: 1px solid var(--select-border);
-      background: var(--input-bg);
-      color: var(--fg);
     }
     input[type="checkbox"] {
       appearance: none;
@@ -237,7 +435,7 @@
       height: 18px;
       margin: 0;
       border: 1px solid var(--checkbox-border);
-      border-radius: 4px;
+      border-radius: 5px;
       background: var(--input-bg);
       display: inline-grid;
       place-content: center;
@@ -262,14 +460,65 @@
       display: inline-flex;
       gap: 8px;
       align-items: center;
+      font-size: var(--text-sm);
     }
-    .card {
-      background: var(--card-bg);
-      border: 1px solid var(--card-border);
-      border-radius: var(--card-radius);
-      box-shadow: var(--card-shadow);
-      padding: 20px;
-      max-width: 360px;
+
+    /* ---- dashboard sample ---- */
+    .kpis {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 12px;
+      margin-top: 16px;
+    }
+    .kpi {
+      padding: 16px;
+      text-align: center;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+    }
+    .kpi .label {
+      color: var(--k, var(--fg-subtle));
+    }
+    .kpi strong {
+      display: block;
+      margin-top: 4px;
+      font-size: var(--text-3xl);
+      line-height: var(--text-3xl-line-height);
+      font-weight: 600;
+    }
+    .bar {
+      height: 3px;
+      margin-top: 10px;
+      border-radius: 2px;
+      background: var(--border);
+      overflow: hidden;
+    }
+    .bar i {
+      display: block;
+      width: 88%;
+      height: 100%;
+      background: var(--success);
+    }
+    .ticket {
+      max-width: 280px;
+      padding: 14px;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      font-size: var(--text-sm);
+      line-height: var(--text-sm-line-height);
+    }
+    .ticket .id {
+      display: flex;
+      justify-content: space-between;
+      font-family: var(--font-mono);
+      font-size: var(--text-xs);
+      color: var(--fg-subtle);
+    }
+    .ticket p {
+      margin: 6px 0 10px;
+      font-weight: 600;
     }
     .badge {
       display: inline-flex;
@@ -279,23 +528,32 @@
       border-radius: var(--radius-pill);
       background: var(--badge-service-bg);
       color: var(--badge-service-fg);
-      font-family: var(--font-mono);
+      font-family: var(--font-display);
       font-size: var(--text-xs);
-      border: 1px solid var(--service-accent);
+      border: 1px solid color-mix(in srgb, var(--service-accent) 45%, transparent);
     }
     .stripe {
-      height: 4px;
-      border-radius: 2px;
+      height: 3px;
       background: var(--service-accent);
     }
-    .signal {
+    .edge {
       height: 48px;
       border-radius: var(--radius-md);
-      background: var(--gradient-signal);
+      background: var(--gradient-edge);
       margin-top: 16px;
     }
     .type-scale p {
       margin: 8px 0;
+    }
+    pre {
+      margin: 16px 0 0;
+      padding: 16px;
+      overflow-x: auto;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      font-size: var(--text-sm);
+      line-height: var(--text-sm-line-height);
     }
     .boxes {
       display: flex;
@@ -326,84 +584,160 @@
   </head>
   <body>
     <main>
-      <header>
-        <div>
-          <img class="logo-light" src="../assets/synthwerk-logo-light.svg" alt="synthwerk">
-          <img class="logo-dark" src="../assets/synthwerk-logo-dark.svg" alt="synthwerk">
-          <p class="overline">// @synthwerk/tokens · <span id="state"></span></p>
+      <nav aria-label="Demo controls">
+        <div class="brand">
+          <img class="logo-light" src="../assets/synthwerk-logo-light.svg" alt="SYNTHWERK.">
+          <img class="logo-dark" src="../assets/synthwerk-logo-dark.svg" alt="SYNTHWERK.">
         </div>
-        <div class="controls">
-          <fieldset>
-            <legend>Theme</legend>
-            <label><input type="radio" name="theme" value="default">default</label>
-            <label><input type="radio" name="theme" value="cyberpunk">cyberpunk</label>
-          </fieldset>
-          <fieldset>
-            <legend>Mode</legend>
-            <label><input type="radio" name="mode" value="light">light</label>
-            <label><input type="radio" name="mode" value="dark">dark</label>
-            <label><input type="radio" name="mode" value="system">system</label>
-          </fieldset>
+        <fieldset>
+          <legend>Theme</legend>
+          <label><input type="radio" name="theme" value="default">Default</label>
+          <label><input type="radio" name="theme" value="contrast">Contrast</label>
+        </fieldset>
+        <span class="sep" aria-hidden="true"></span>
+        <fieldset>
+          <legend>Mode</legend>
+          <label><input type="radio" name="mode" value="light">Light</label>
+          <label><input type="radio" name="mode" value="dark">Dark</label>
+          <label><input type="radio" name="mode" value="system">System</label>
+        </fieldset>
+      </nav>
+
+      <div class="bento">
+        <div class="card hero">
+          <span class="status">@synthwerk/tokens 0.2.0</span>
+          <h1>SYNTHWERK.</h1>
+          <div class="role">
+            <span class="accent-line" aria-hidden="true"></span>
+            <span class="title">Design tokens</span>
+            <span class="label" id="state"></span>
+          </div>
+          <p class="tagline">
+            One token source for studio, widgets and SDK apps. The same look as the website and the
+            code-context dashboard, in light and dark.
+          </p>
+          <div class="row">
+            <a class="btn btn-primary" href="#components">See the components</a>
+            <a class="btn btn-secondary" href="#type">Typography</a>
+          </div>
         </div>
-      </header>
-
-      <h2>Semantic colours</h2>
-      <p class="overline">// one value per theme × mode · ratio = contrast on --bg</p>
-      <div class="grid" id="semantic"></div>
-
-      <h2>Text on surfaces</h2>
-      <p class="overline">// WCAG 2.2 · body text ≥ 4.5 · UI ≥ 3</p>
-      <div class="surfaces" id="surfaces"></div>
-
-      <h2>Components</h2>
-      <p class="overline">// component tokens point to semantic tokens</p>
-      <div class="row">
-        <button class="btn btn-primary" type="button">Save changes</button>
-        <button class="btn btn-secondary" type="button">Cancel</button>
-        <button class="btn btn-accent-2" type="button">Highlight</button>
-        <a href="#components">A text link</a>
-        <input type="text" placeholder="Search tokens" aria-label="Search tokens">
-        <select aria-label="Model">
-          <option>qwen3.5:4b</option>
-          <option>qwen3.5:2b</option>
-        </select>
-        <label class="check"><input type="checkbox" checked>Stream</label>
-        <label class="check"><input type="checkbox">Offline</label>
-      </div>
-      <div class="row">
-        <div class="card">
-          <p class="overline">// card</p>
-          <h3 style="margin: 4px 0; font-family: var(--font-display)">Connect a service</h3>
-          <p class="muted" style="margin: 0">The model runs on your machine. No data leaves it.</p>
+        <div class="card side">
+          <span class="status">Open source · MIT</span>
+          <h3>One source.<br>Every surface.</h3>
+          <div class="snippet"><span>$</span> pnpm add @synthwerk/tokens</div>
+          <p>
+            CSS variables, a Tailwind 4 theme, JSON and typed exports. Every text pair passes WCAG
+            AA, the contrast theme passes AAA.
+          </p>
+          <a class="more" href="#semantic-colours">Semantic colours →</a>
         </div>
       </div>
 
-      <h2>Service accents</h2>
-      <p class="overline">// [data-service] sets --service-accent and --service-accent-text</p>
-      <div class="grid" id="services"></div>
+      <section class="card" id="components">
+        <p class="overline">Components · tokens point to semantic tokens</p>
+        <h2>Dashboard sample</h2>
+        <div class="kpis">
+          <div class="kpi">
+            <span class="label">Velocity</span><strong>29/33</strong>
+            <div class="bar"><i></i></div>
+          </div>
+          <div class="kpi"><span class="label">Todo</span><strong>0</strong></div>
+          <div class="kpi" style="--k: var(--info)">
+            <span class="label">Progress</span><strong>2</strong>
+          </div>
+          <div class="kpi" style="--k: var(--success)">
+            <span class="label">Done</span><strong>11</strong>
+          </div>
+          <div class="kpi" style="--k: var(--danger)">
+            <span class="label">Not done</span><strong>1</strong>
+          </div>
+        </div>
+        <div class="row" style="margin-top: 16px; align-items: flex-start">
+          <div class="ticket" data-service="llm">
+            <div class="id"><span>S-E2-04</span><span>3sp</span></div>
+            <p>Stream tokens over the edge</p>
+            <span class="badge">llm</span>
+          </div>
+          <div class="ticket" data-service="vision">
+            <div class="id"><span>S-E3-01</span><span>5sp</span></div>
+            <p>Label images on CPU</p>
+            <span class="badge">vision</span>
+          </div>
+          <div class="ticket" data-service="studio">
+            <div class="id"><span>S-E4-02</span><span>2sp</span></div>
+            <p>Page builder blocks</p>
+            <span class="badge">studio</span>
+          </div>
+        </div>
+        <div class="row" style="margin-top: 24px">
+          <button class="btn btn-primary" type="button">Save changes</button>
+          <button class="btn btn-secondary" type="button">Cancel</button>
+          <button class="btn btn-accent-2" type="button">Contact</button>
+          <a href="#components">A text link</a>
+        </div>
+        <div class="row" style="margin-top: 16px">
+          <input type="text" placeholder="Search tokens" aria-label="Search tokens">
+          <select aria-label="Model">
+            <option>qwen3.5:4b</option>
+            <option>qwen3.5:2b</option>
+          </select>
+          <label class="check"><input type="checkbox" checked>Stream</label>
+          <label class="check"><input type="checkbox">Offline</label>
+        </div>
+      </section>
 
-      <h2>Signal and status</h2>
-      <p class="overline">// --gradient-signal · status colours</p>
-      <div class="signal"></div>
-      <div class="row" id="status"></div>
+      <section class="card" id="semantic-colours">
+        <p class="overline">One value per theme × mode · ratio = contrast on --bg</p>
+        <h2>Semantic colours</h2>
+        <div class="grid" id="semantic"></div>
+      </section>
 
-      <h2>Typography</h2>
-      <p class="overline">
-        // Space Grotesk · Inter · JetBrains Mono (system fallback when not installed)
-      </p>
-      <div class="type-scale" id="type"></div>
+      <section class="card">
+        <p class="overline">WCAG 2.2 · body text ≥ 4.5 · UI ≥ 3 · contrast theme ≥ 7</p>
+        <h2>Text on surfaces</h2>
+        <div class="surfaces" id="surfaces"></div>
+      </section>
 
-      <h2>Radii and shadows</h2>
-      <p class="overline">// --radius-* · --shadow-card-v · --glow</p>
-      <div class="boxes" id="radii"></div>
+      <section class="card">
+        <p class="overline">[data-service] sets --service-accent and --service-accent-text</p>
+        <h2>Service accents</h2>
+        <div class="grid" id="services"></div>
+      </section>
 
-      <h2>Motion</h2>
-      <p class="overline">// hover a box · durations become 0.01ms with prefers-reduced-motion</p>
-      <div class="boxes motion" id="motion"></div>
+      <section class="card">
+        <p class="overline">Status colours · --gradient-edge</p>
+        <h2>Status and edge</h2>
+        <div class="row" id="status" style="margin-top: 16px"></div>
+        <div class="edge"></div>
+      </section>
 
-      <h2>Primitives</h2>
-      <p class="overline">// raw values · never used in components</p>
-      <div class="grid" id="primitives"></div>
+      <section class="card" id="type">
+        <p class="overline">Space Mono · Inter · JetBrains Mono</p>
+        <h2>Typography</h2>
+        <div class="type-scale" id="type-scale"></div>
+        <pre><code>// --font-mono: code, logs and diffs
+import { resolveMode } from '@synthwerk/tokens'
+const mode = resolveMode('default', undefined, matchMedia('(prefers-color-scheme: dark)').matches)
+0O 1lI {} [] =&gt; !== ===</code></pre>
+      </section>
+
+      <section class="card">
+        <p class="overline">--radius-* · --shadow-card-v · --glow</p>
+        <h2>Radii and shadows</h2>
+        <div class="boxes" id="radii"></div>
+      </section>
+
+      <section class="card">
+        <p class="overline">Hover a box · durations become 0.01ms with prefers-reduced-motion</p>
+        <h2>Motion</h2>
+        <div class="boxes motion" id="motion"></div>
+      </section>
+
+      <section class="card">
+        <p class="overline">Raw values · never used in components</p>
+        <h2>Primitives</h2>
+        <div class="grid" id="primitives"></div>
+      </section>
 
       <footer>
         Generated tokens: <code>dist/tokens.css</code>, <code>dist/tailwind.css</code>,
@@ -414,6 +748,7 @@
     <script type="module">
     import {
       contrastRatio,
+      defaultMode,
       motion,
       PREFS_KEY,
       primitives,
@@ -444,7 +779,7 @@
     }
 
     function current() {
-      const theme = html.getAttribute('data-theme') === 'cyberpunk' ? 'cyberpunk' : 'default'
+      const theme = html.getAttribute('data-theme') === 'contrast' ? 'contrast' : 'default'
       const stored = html.getAttribute('data-mode') ?? undefined
       return { theme, stored, mode: resolveMode(theme, stored, system.matches) }
     }
@@ -463,15 +798,14 @@
     function render() {
       const { theme, stored, mode } = current()
       html.setAttribute('data-effective', mode)
-      $('state').textContent = `${theme} · ${mode}${stored ? '' : ' (nothing stored)'}`
+      $('state').textContent = `${theme} · ${mode}${stored ? '' : ' · follows the system'}`
       for (const input of document.querySelectorAll('input[name=theme]'))
         input.checked = input.value === theme
       for (const input of document.querySelectorAll('input[name=mode]'))
-        input.checked = input.value === (stored ?? (theme === 'cyberpunk' ? 'dark' : 'system'))
+        input.checked = input.value === (stored ?? defaultMode[theme])
 
       const colors = resolveColors(theme, mode)
-      const semantic = $('semantic')
-      semantic.replaceChildren(
+      $('semantic').replaceChildren(
         ...semanticColorNames.map((name) =>
           swatch(
             `--${name}`,
@@ -516,46 +850,42 @@
           const card = el('div', { class: 'swatch', 'data-service': service })
           const body = el('div')
           body.append(el('span', { class: 'badge' }, service), el('br'))
-          const t = el('span', {}, `--service-accent-text`)
+          const t = el('span', {}, '--service-accent-text')
           t.style.color = 'var(--service-accent-text)'
           body.append(t)
-          const stripe = el('div', { class: 'stripe' })
-          card.append(stripe, body)
+          card.append(el('div', { class: 'stripe' }), body)
           return card
         })
       )
 
       $('status').replaceChildren(
         ...['success', 'warning', 'danger', 'info'].map((s) => {
-          const span = el('span', { class: 'badge' }, s)
+          const span = el('span', { class: 'status' }, s)
           span.style.color = `var(--${s})`
-          span.style.borderColor = `var(--${s})`
-          span.style.background = 'transparent'
+          span.style.borderColor = `color-mix(in srgb, var(--${s}) 40%, transparent)`
+          span.style.background = `color-mix(in srgb, var(--${s}) 10%, transparent)`
           return span
         })
       )
     }
 
     function renderStatic() {
-      $('type').replaceChildren(
+      $('type-scale').replaceChildren(
         ...Object.entries(textScale)
           .reverse()
           .map(([name, step]) => {
+            const display = step.size >= 20 || name === 'xs'
             const p = el(
               'p',
               {},
-              `text-${name} · ${step.size}/${step.lineHeight} · Patch the signal into the module.`
+              `text-${name} · ${step.size}/${step.lineHeight} · ${display ? 'ONE SOURCE. EVERY SURFACE.' : 'One token source for studio, widgets and SDK apps.'}`
             )
             p.style.fontSize = `var(--text-${name})`
             p.style.lineHeight = `var(--text-${name}-line-height)`
-            p.style.fontFamily =
-              name === 'xs'
-                ? 'var(--font-mono)'
-                : step.size >= 20
-                  ? 'var(--font-display)'
-                  : 'var(--font-sans)'
+            p.style.fontFamily = display ? 'var(--font-display)' : 'var(--font-sans)'
             if ('tracking' in step) p.style.letterSpacing = step.tracking
             if (step.size >= 20) p.style.fontWeight = '700'
+            if (name === 'xs') p.style.color = 'var(--fg-subtle)'
             return p
           })
       )
