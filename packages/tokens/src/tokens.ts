@@ -1,6 +1,7 @@
 /**
  * Synthwerk design tokens: the single source of truth.
  *
+ * Look: public presence (decision D-41, docs/ecosystem-plan/07c-public-presence.md).
  * Layers (brand doc 07 §4):
  * 1. Primitives: raw hex values. The only place where a hex value may appear.
  * 2. Semantic: one role per theme × mode. Values are primitive names, never hex.
@@ -14,12 +15,15 @@ export const primitives = {
   white: '#FFFFFF',
   black: '#000000',
 
+  // Neutrals of the website (velimir-mueller.de): Tailwind zinc plus three steps for contrast.
   'zinc-50': '#FAFAFA',
   'zinc-100': '#F4F4F5',
   'zinc-200': '#E4E4E7',
   'zinc-300': '#D4D4D8',
+  'zinc-350': '#B4B4BC',
   'zinc-400': '#A1A1AA',
   'zinc-450': '#8A8A93',
+  'zinc-500': '#71717A',
   'zinc-550': '#6B6B74',
   'zinc-600': '#52525B',
   'zinc-700': '#3F3F46',
@@ -28,82 +32,90 @@ export const primitives = {
   'zinc-900': '#121214',
   'zinc-950': '#09090B',
 
-  'void-950': '#070514',
-  'void-900': '#0E0B1F',
-  'void-850': '#120E28',
-  'void-800': '#1E1840',
-  'void-700': '#322868',
+  // Dark surfaces of the code-context dashboard. 400 and 500 are lifted for AA (text3 #63637A fails).
+  'graphite-950': '#0C0C10',
+  'graphite-900': '#131318',
+  'graphite-850': '#18181F',
+  'graphite-800': '#1E1E28',
+  'graphite-750': '#1C1C28',
+  'graphite-700': '#282838',
+  'graphite-500': '#6B6B84',
+  'graphite-400': '#8A8AA0',
 
-  'glacier-100': '#E6F1FF',
-  'glacier-300': '#A9B4D6',
-  'glacier-400': '#8790BC',
-
-  'mist-50': '#F7F7FB',
-  'mist-100': '#EEF0F6',
-  'mist-200': '#DADDEB',
-
-  'slate-950': '#0B0A1A',
-  'slate-700': '#454A5E',
-  'slate-600': '#5F6580',
-
-  'neon-cyan': '#00FFF7',
-  'neon-magenta': '#EE4FFF',
-  'neon-green': '#05FFA1',
-  'neon-acid': '#F0FF19',
-  'neon-red': '#FF2A6D',
-  'neon-uv': '#8F7DFF',
-  'neon-uv-deep': '#4A2EFF',
-  'neon-blue': '#00A3FF',
-
-  'deep-cyan': '#007874',
-  'deep-magenta': '#BB00CE',
-  'deep-green': '#007A4C',
-  'deep-acid': '#687000',
-  'deep-red': '#D70044',
-  'deep-blue': '#0070B0',
-
-  'print-cyan': '#009C97',
-  'print-magenta': '#EA29FF',
-
-  // Status colours of the `default` theme (Tailwind palette values).
-  'green-700': '#15803D',
-  'amber-700': '#B45309',
-  'red-700': '#B91C1C',
-  'blue-700': '#1D4ED8',
-  'green-400': '#4ADE80',
+  // Dashboard status and accent colours (Tailwind palette values).
+  'emerald-300': '#6EE7B7',
+  'emerald-400': '#34D399',
+  'emerald-500': '#10B981',
+  'emerald-700': '#047857',
+  'emerald-800': '#065F46',
+  'indigo-300': '#A5B4FC',
+  'indigo-400': '#818CF8',
+  'indigo-500': '#6366F1',
+  'indigo-600': '#4F46E5',
+  'indigo-700': '#4338CA',
+  'indigo-800': '#3730A3',
+  'violet-400': '#A78BFA',
+  'violet-500': '#8B5CF6',
+  'violet-600': '#7C3AED',
+  'violet-700': '#6D28D9',
+  'pink-400': '#F472B6',
+  'pink-700': '#BE185D',
+  'amber-300': '#FCD34D',
   'amber-400': '#FBBF24',
+  'amber-700': '#B45309',
+  'amber-800': '#92400E',
+  'amber-900': '#78350F',
+  'red-300': '#FCA5A5',
   'red-400': '#F87171',
-  'blue-400': '#60A5FA'
+  'red-500': '#EF4444',
+  'red-700': '#B91C1C',
+  'red-800': '#991B1B',
+  'blue-300': '#93C5FD',
+  'blue-400': '#60A5FA',
+  'blue-700': '#1D4ED8',
+  'blue-800': '#1E40AF',
+  'teal-400': '#2DD4BF',
+  'teal-500': '#14B8A6',
+  'teal-600': '#0D9488',
+  'teal-700': '#0F766E'
 } as const satisfies Record<string, `#${string}`>
 
 export type Primitive = keyof typeof primitives
 export type Hex = (typeof primitives)[Primitive]
 
-/** Gradients built only from primitives. */
+/** Gradients built only from primitives: the teal-to-violet edge glow of the website. */
 export const gradients = {
-  'signal-neon': ['neon-cyan', 'neon-magenta'],
-  'signal-print': ['print-cyan', 'print-magenta']
+  'edge-dark': ['teal-500', 'violet-500'],
+  'edge-light': ['teal-600', 'violet-600']
 } as const satisfies Record<string, readonly [Primitive, Primitive]>
 
 export type Gradient = keyof typeof gradients
 
-/** Brand palette (§3.2): names for brand assets, mapped to primitives. */
+/** Brand palette (public presence, D-41): names for brand assets, mapped to primitives. */
 export const brand = {
-  ink: 'zinc-950',
-  graphite: 'zinc-800',
-  steel: 'zinc-550',
-  mist: 'zinc-200',
+  ink: 'zinc-850',
+  night: 'graphite-950',
   paper: 'zinc-50',
-  void: 'void-950',
-  'signal-cyan': 'neon-cyan',
-  'signal-magenta': 'neon-magenta',
-  'signal-cyan-print': 'print-cyan',
-  'signal-magenta-print': 'print-magenta'
+  line: 'zinc-200',
+  sub: 'zinc-600',
+  faint: 'zinc-500',
+  emerald: 'emerald-500',
+  'emerald-print': 'emerald-700',
+  indigo: 'indigo-500',
+  'indigo-print': 'indigo-600',
+  'glow-teal': 'teal-500',
+  'glow-red': 'red-500',
+  'glow-violet': 'violet-500'
 } as const satisfies Record<string, Primitive>
 
 // ---------------------------------------------------------------- 2. Semantic
 
-export const themeNames = ['default', 'cyberpunk'] as const
+/**
+ * - `default`: the public look (D-41). Light = velimir-mueller.de, dark = code-context dashboard.
+ * - `contrast`: the same family for low vision. Text ≥ 7:1 (AAA), control borders ≥ 4.5:1,
+ *   no glow, no grid, no tinted fills.
+ */
+export const themeNames = ['default', 'contrast'] as const
 export const modes = ['light', 'dark'] as const
 export type ThemeName = (typeof themeNames)[number]
 export type Mode = (typeof modes)[number]
@@ -158,10 +170,23 @@ export interface TextureGrid {
   readonly size: number
 }
 
+/** A soft radial glow at the page edge (07c: teal top-left, red top-centre, violet top-right). */
+export interface EdgeGlow {
+  readonly color: Tint
+  /** Centre, in percent of the page box. */
+  readonly x: number
+  readonly y: number
+  /** Radii, in percent of the page box. */
+  readonly rx: number
+  readonly ry: number
+}
+
 export interface SemanticEffects {
   readonly glow: Shadow
+  /** Page background glows. Keep them at the edges, never behind text. */
+  readonly 'glow-edge': readonly EdgeGlow[] | 'none'
   readonly 'shadow-card-v': Shadow
-  readonly 'gradient-signal': Gradient
+  readonly 'gradient-edge': Gradient
   readonly 'texture-grid': TextureGrid | 'none'
   /** Share of `--service-accent` in the service badge fill, in percent. */
   readonly 'badge-service-tint': number
@@ -169,8 +194,9 @@ export interface SemanticEffects {
 
 export const semanticEffectNames = [
   'glow',
+  'glow-edge',
   'shadow-card-v',
-  'gradient-signal',
+  'gradient-edge',
   'texture-grid',
   'badge-service-tint'
 ] as const satisfies readonly (keyof SemanticEffects)[]
@@ -182,8 +208,16 @@ export interface ThemeMode {
 
 const tint = (primitive: Primitive, alpha: number): Tint => ({ tint: primitive, alpha })
 
+/** The three edge glows of the website and the banners, at the given strengths in percent. */
+const edgeGlows = (teal: number, red: number, violet: number): readonly EdgeGlow[] => [
+  { color: tint('teal-500', teal), x: 16, y: 0, rx: 36, ry: 52 },
+  { color: tint('red-500', red), x: 52, y: 0, rx: 28, ry: 36 },
+  { color: tint('violet-500', violet), x: 90, y: 4, rx: 34, ry: 56 }
+]
+
 export const themes = {
   default: {
+    // velimir-mueller.de light: #FAFAFA page, white cards, #E4E4E7 lines, #18181B ink, indigo.
     light: {
       colors: {
         bg: 'zinc-50',
@@ -192,140 +226,140 @@ export const themes = {
         border: 'zinc-200',
         'border-subtle': 'zinc-100',
         'border-control': 'zinc-450',
-        fg: 'zinc-950',
+        fg: 'zinc-850',
         'fg-muted': 'zinc-600',
         'fg-subtle': 'zinc-550',
         accent: 'zinc-850',
         'accent-fg': 'zinc-50',
         'accent-text': 'zinc-850',
-        'accent-2': 'zinc-700',
-        'accent-2-fg': 'zinc-50',
-        'accent-2-text': 'zinc-700',
-        success: 'green-700',
+        'accent-2': 'indigo-600',
+        'accent-2-fg': 'white',
+        'accent-2-text': 'indigo-600',
+        success: 'emerald-700',
         warning: 'amber-700',
         danger: 'red-700',
         info: 'blue-700',
-        ring: 'zinc-850'
+        ring: 'indigo-600'
       },
       effects: {
-        glow: 'none',
+        glow: [{ x: 0, y: 0, blur: 20, spread: 2, color: tint('indigo-500', 15) }],
+        'glow-edge': edgeGlows(14, 8, 14),
         'shadow-card-v': [
           { x: 0, y: 1, blur: 2, color: tint('black', 4) },
           { x: 0, y: 4, blur: 24, spread: -8, color: tint('black', 8) }
         ],
-        'gradient-signal': 'signal-print',
-        'texture-grid': 'none',
-        'badge-service-tint': 0
+        'gradient-edge': 'edge-light',
+        'texture-grid': { line: tint('zinc-850', 5), size: 32 },
+        'badge-service-tint': 8
       }
     },
+    // code-context dashboard: #0C0C10 page, #131318 / #18181F panels, #282838 lines, white pill.
     dark: {
       colors: {
-        bg: 'zinc-950',
-        surface: 'zinc-900',
-        'surface-2': 'zinc-850',
-        border: 'zinc-800',
-        'border-subtle': 'zinc-850',
-        'border-control': 'zinc-550',
-        fg: 'zinc-100',
+        bg: 'graphite-950',
+        surface: 'graphite-900',
+        'surface-2': 'graphite-850',
+        border: 'graphite-700',
+        'border-subtle': 'graphite-750',
+        'border-control': 'graphite-500',
+        fg: 'zinc-200',
         'fg-muted': 'zinc-400',
-        'fg-subtle': 'zinc-450',
+        'fg-subtle': 'graphite-400',
         accent: 'zinc-50',
-        'accent-fg': 'zinc-950',
+        'accent-fg': 'graphite-950',
         'accent-text': 'zinc-50',
-        'accent-2': 'zinc-300',
-        'accent-2-fg': 'zinc-950',
-        'accent-2-text': 'zinc-300',
-        success: 'green-400',
+        'accent-2': 'indigo-400',
+        'accent-2-fg': 'graphite-950',
+        'accent-2-text': 'indigo-400',
+        success: 'emerald-500',
         warning: 'amber-400',
         danger: 'red-400',
         info: 'blue-400',
-        ring: 'zinc-200'
+        ring: 'indigo-400'
       },
       effects: {
-        glow: [{ x: 0, y: 0, blur: 40, spread: -10, color: tint('white', 8) }],
-        'shadow-card-v': [{ x: 0, y: 0, blur: 0, spread: 1, color: tint('white', 5) }],
-        'gradient-signal': 'signal-neon',
-        'texture-grid': 'none',
+        // No card shadows in dark mode (07c §Shapes). The glow is the website hover glow.
+        glow: [{ x: 0, y: 0, blur: 40, spread: -10, color: tint('indigo-500', 25) }],
+        'glow-edge': edgeGlows(22, 14, 22),
+        'shadow-card-v': 'none',
+        'gradient-edge': 'edge-dark',
+        'texture-grid': { line: tint('white', 4.5), size: 32 },
         'badge-service-tint': 14
       }
     }
   },
-  cyberpunk: {
+  contrast: {
     light: {
       colors: {
-        bg: 'mist-50',
+        bg: 'white',
         surface: 'white',
-        'surface-2': 'mist-100',
-        border: 'mist-200',
-        'border-subtle': 'mist-100',
-        'border-control': 'slate-600',
-        fg: 'slate-950',
-        'fg-muted': 'slate-700',
-        'fg-subtle': 'slate-600',
-        accent: 'neon-cyan',
-        'accent-fg': 'void-950',
-        'accent-text': 'deep-cyan',
-        'accent-2': 'neon-magenta',
-        'accent-2-fg': 'void-950',
-        'accent-2-text': 'deep-magenta',
-        success: 'deep-green',
-        warning: 'deep-acid',
-        danger: 'deep-red',
-        info: 'neon-uv-deep',
-        ring: 'deep-cyan'
+        'surface-2': 'zinc-50',
+        border: 'zinc-400',
+        'border-subtle': 'zinc-200',
+        'border-control': 'zinc-700',
+        fg: 'zinc-950',
+        'fg-muted': 'zinc-700',
+        'fg-subtle': 'zinc-600',
+        accent: 'zinc-950',
+        'accent-fg': 'white',
+        'accent-text': 'zinc-950',
+        'accent-2': 'indigo-800',
+        'accent-2-fg': 'white',
+        'accent-2-text': 'indigo-800',
+        success: 'emerald-800',
+        warning: 'amber-900',
+        danger: 'red-800',
+        info: 'blue-800',
+        ring: 'indigo-800'
       },
       effects: {
-        glow: [{ x: 0, y: 0, blur: 20, color: tint('deep-cyan', 18) }],
-        'shadow-card-v': [{ x: 0, y: 4, blur: 24, spread: -8, color: tint('neon-uv-deep', 12) }],
-        'gradient-signal': 'signal-print',
-        'texture-grid': { line: tint('slate-950', 4), size: 24 },
+        glow: 'none',
+        'glow-edge': 'none',
+        'shadow-card-v': 'none',
+        'gradient-edge': 'edge-light',
+        'texture-grid': 'none',
         'badge-service-tint': 0
       }
     },
     dark: {
       colors: {
-        bg: 'void-950',
-        surface: 'void-900',
-        'surface-2': 'void-850',
-        border: 'void-700',
-        'border-subtle': 'void-800',
-        'border-control': 'slate-600',
-        fg: 'glacier-100',
-        'fg-muted': 'glacier-300',
-        'fg-subtle': 'glacier-400',
-        accent: 'neon-cyan',
-        'accent-fg': 'void-950',
-        'accent-text': 'neon-cyan',
-        'accent-2': 'neon-magenta',
-        'accent-2-fg': 'void-950',
-        'accent-2-text': 'neon-magenta',
-        success: 'neon-green',
-        warning: 'neon-acid',
-        danger: 'neon-red',
-        info: 'neon-uv',
-        ring: 'neon-cyan'
+        bg: 'black',
+        surface: 'zinc-950',
+        'surface-2': 'zinc-850',
+        border: 'zinc-600',
+        'border-subtle': 'zinc-800',
+        'border-control': 'zinc-400',
+        fg: 'white',
+        'fg-muted': 'zinc-300',
+        'fg-subtle': 'zinc-350',
+        accent: 'white',
+        'accent-fg': 'black',
+        'accent-text': 'white',
+        'accent-2': 'indigo-300',
+        'accent-2-fg': 'black',
+        'accent-2-text': 'indigo-300',
+        success: 'emerald-300',
+        warning: 'amber-300',
+        danger: 'red-300',
+        info: 'blue-300',
+        ring: 'indigo-300'
       },
       effects: {
-        glow: [
-          { x: 0, y: 0, blur: 24, color: tint('neon-cyan', 35) },
-          { x: 0, y: 0, blur: 12, inset: true, color: tint('neon-magenta', 12) }
-        ],
-        'shadow-card-v': [
-          { x: 0, y: 0, blur: 0, spread: 1, color: tint('white', 6) },
-          { x: 0, y: 0, blur: 40, color: tint('neon-cyan', 6) }
-        ],
-        'gradient-signal': 'signal-neon',
-        'texture-grid': { line: tint('neon-cyan', 4), size: 24 },
-        'badge-service-tint': 14
+        glow: 'none',
+        'glow-edge': 'none',
+        'shadow-card-v': 'none',
+        'gradient-edge': 'edge-dark',
+        'texture-grid': 'none',
+        'badge-service-tint': 0
       }
     }
   }
 } as const satisfies Record<ThemeName, Record<Mode, ThemeMode>>
 
-/** Mode a theme uses when the user has stored no choice (brand doc §2 Q1). */
+/** Mode a theme uses when the user has stored no choice. Both themes follow the OS. */
 export const defaultMode = {
   default: 'system',
-  cyberpunk: 'dark'
+  contrast: 'system'
 } as const satisfies Record<ThemeName, Mode | 'system'>
 
 // ---------------------------------------------------------------- 3. Component
@@ -366,15 +400,19 @@ export type ComponentToken = keyof typeof components
 export const serviceNames = ['studio', 'llm', 'vision', 'pulse', 'identity', 'widgets'] as const
 export type ServiceName = (typeof serviceNames)[number]
 
-/** Neon in dark modes, deep in light modes (§4.3). Meta repos use `--gradient-signal`. */
+/**
+ * Calm accents from the dashboard status colours. Emerald stays reserved for status (07c).
+ * `dark`: the 400 step, text in dark modes and the accent stripe in all modes.
+ * `light`: the 700/800 step, text in light modes. Meta repos use `--gradient-edge`.
+ */
 export const services = {
-  studio: { neon: 'neon-cyan', deep: 'deep-cyan' },
-  llm: { neon: 'neon-magenta', deep: 'deep-magenta' },
-  vision: { neon: 'neon-green', deep: 'deep-green' },
-  pulse: { neon: 'neon-acid', deep: 'deep-acid' },
-  identity: { neon: 'neon-uv', deep: 'neon-uv-deep' },
-  widgets: { neon: 'neon-blue', deep: 'deep-blue' }
-} as const satisfies Record<ServiceName, { neon: Primitive; deep: Primitive }>
+  studio: { dark: 'indigo-400', light: 'indigo-700' },
+  llm: { dark: 'violet-400', light: 'violet-700' },
+  vision: { dark: 'pink-400', light: 'pink-700' },
+  pulse: { dark: 'amber-400', light: 'amber-800' },
+  identity: { dark: 'blue-400', light: 'blue-700' },
+  widgets: { dark: 'teal-400', light: 'teal-700' }
+} as const satisfies Record<ServiceName, { dark: Primitive; light: Primitive }>
 
 // ---------------------------------------------------------------- 5. Static tokens
 
@@ -396,22 +434,32 @@ export const motion = {
   }
 } as const
 
+/** Radii of the public family (07c §Shapes): snippet 10, dashboard panel 14, card 24, page 32. */
 export const radii = {
-  sm: '0.5rem',
-  md: '0.75rem',
+  sm: '0.625rem',
+  md: '0.875rem',
   card: '1.5rem',
+  page: '2rem',
   pill: '9999px'
 } as const
 
+/**
+ * - `display`: Space Mono. Headlines, the wordmark, labels and pills (capitals, wide tracking).
+ * - `sans`: Inter. Body text and UI controls.
+ * - `mono`: JetBrains Mono. Code blocks, logs and diffs. Chosen over Space Mono for code:
+ *   taller x-height (0.55 vs 0.50 em) at a narrower advance (0.600 vs 0.612 em), so more
+ *   code fits a line and small sizes stay legible. Both are SIL OFL 1.1.
+ *   Short `$ command` snippets may use `display` to match the website.
+ */
 export const fonts = {
   display: {
-    family: 'Space Grotesk',
-    weights: [500, 700],
-    stack: '"Space Grotesk", Inter, system-ui, sans-serif'
+    family: 'Space Mono',
+    weights: [400, 700],
+    stack: '"Space Mono", ui-monospace, SFMono-Regular, Menlo, monospace'
   },
   sans: {
     family: 'Inter',
-    weights: [400, 650],
+    weights: [400, 600],
     stack: 'Inter, system-ui, -apple-system, "Segoe UI", sans-serif'
   },
   mono: {
@@ -427,14 +475,14 @@ export interface TextStep {
   readonly tracking?: string
 }
 
-/** Type scale in px (§5.1). The CSS uses rem (px / 16). */
+/** Type scale in px. The CSS uses rem (px / 16). `xs` is the label step, `5xl` the display step. */
 export const textScale = {
-  xs: { size: 12, lineHeight: 16, tracking: '0.14em' },
+  xs: { size: 12, lineHeight: 16, tracking: '0.15em' },
   sm: { size: 13, lineHeight: 20 },
   base: { size: 15, lineHeight: 24 },
   lg: { size: 17, lineHeight: 26 },
   xl: { size: 20, lineHeight: 28 },
   '2xl': { size: 24, lineHeight: 30 },
   '3xl': { size: 30, lineHeight: 36 },
-  '5xl': { size: 48, lineHeight: 52, tracking: '-0.02em' }
+  '5xl': { size: 48, lineHeight: 52, tracking: '-0.04em' }
 } as const satisfies Record<string, TextStep>

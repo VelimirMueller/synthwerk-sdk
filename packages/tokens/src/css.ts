@@ -47,23 +47,40 @@ export function renderShadow(shadow: Shadow): string {
     .join(', ')
 }
 
+/** Edge glows as stacked radial gradients that fade to transparent. */
+export function renderEdgeGlow(glows: SemanticEffects['glow-edge']): string {
+  if (glows === 'none') return 'none'
+  return glows
+    .map(
+      (g) =>
+        `radial-gradient(${g.rx}% ${g.ry}% at ${g.x}% ${g.y}%, ${renderTint(g.color)}, transparent)`
+    )
+    .join(', ')
+}
+
 export function renderGradient(name: Gradient): string {
   const [from, to] = gradients[name]
   return `linear-gradient(135deg, ${v(from)}, ${v(to)})`
 }
 
+/** A square grid: horizontal and vertical 1 px lines, `size` px apart (07c: 32 px). */
 export function renderTexture(texture: TextureGrid | 'none'): string {
   if (texture === 'none') return 'none'
   const line = renderTint(texture.line)
-  return `linear-gradient(${line} 1px, transparent 1px) 0 0 / ${texture.size}px ${texture.size}px`
+  const tile = `0 0 / ${texture.size}px ${texture.size}px`
+  return [
+    `linear-gradient(${line} 1px, transparent 1px) ${tile}`,
+    `linear-gradient(90deg, ${line} 1px, transparent 1px) ${tile}`
+  ].join(', ')
 }
 
 /** CSS value of every semantic effect token. */
 export function renderEffects(effects: SemanticEffects): Record<keyof SemanticEffects, string> {
   return {
     glow: renderShadow(effects.glow),
+    'glow-edge': renderEdgeGlow(effects['glow-edge']),
     'shadow-card-v': renderShadow(effects['shadow-card-v']),
-    'gradient-signal': v(effects['gradient-signal']),
+    'gradient-edge': v(effects['gradient-edge']),
     'texture-grid': renderTexture(effects['texture-grid']),
     'badge-service-tint': `${effects['badge-service-tint']}%`
   }
@@ -73,26 +90,24 @@ export function renderEffects(effects: SemanticEffects): Record<keyof SemanticEf
 
 /**
  * Switches on `<html>` (or on any element, for a scoped preview):
- * - `data-theme="default|cyberpunk"`. Missing = `default`.
+ * - `data-theme="default|contrast"`. Missing = `default`.
  * - `data-mode="light|dark|system"`. Missing = nothing stored.
  *
- * Nothing stored: `default` follows the OS, `cyberpunk` is dark.
- * A stored choice always wins (brand doc §2 Q1).
+ * Nothing stored: both themes follow the OS. A stored choice always wins (brand doc §2 Q1).
  *
- * Nested scopes (a `[data-theme]` element below `<html>`) must set `data-mode` explicitly:
- * the OS-dark rule for `default` without `data-mode` matches `:root` only.
+ * Nested scopes (a `[data-theme]` element below `<html>`) should set `data-mode` explicitly.
  */
 export const selectors = {
   default: {
     light: ':root, [data-theme="default"]',
-    dark: ':root:not([data-theme="cyberpunk"])[data-mode="dark"], [data-theme="default"][data-mode="dark"]',
+    dark: ':root:not([data-theme="contrast"])[data-mode="dark"], [data-theme="default"][data-mode="dark"]',
     systemDark:
-      ':root:not([data-theme="cyberpunk"]):not([data-mode="light"]), [data-theme="default"]:not([data-mode="light"])'
+      ':root:not([data-theme="contrast"]):not([data-mode="light"]), [data-theme="default"]:not([data-mode="light"])'
   },
-  cyberpunk: {
-    light: '[data-theme="cyberpunk"]',
-    dark: '[data-theme="cyberpunk"]:not([data-mode="light"]):not([data-mode="system"])',
-    systemDark: '[data-theme="cyberpunk"][data-mode="system"]'
+  contrast: {
+    light: '[data-theme="contrast"]',
+    dark: '[data-theme="contrast"][data-mode="dark"]',
+    systemDark: '[data-theme="contrast"]:not([data-mode="light"])'
   }
 } as const satisfies Record<ThemeName, Record<'light' | 'dark' | 'systemDark', string>>
 
@@ -108,7 +123,7 @@ function themeModeLines(theme: ThemeName, mode: Mode): string[] {
     lines.push(decl(name, value))
   for (const service of serviceNames) {
     const s = services[service]
-    lines.push(decl(`service-${service}-text`, v(mode === 'dark' ? s.neon : s.deep)))
+    lines.push(decl(`service-${service}-text`, v(mode === 'dark' ? s.dark : s.light)))
   }
   lines.push(`  color-scheme: ${mode};`)
   return lines
@@ -148,13 +163,10 @@ export function renderTokensCss(): string {
     )
   }
   for (const theme of themeNames) {
-    const note = defaultMode[theme] === 'dark' ? ' (also when nothing is stored)' : ''
-    out.push(`/* ${theme} · dark, stored choice${note} */`)
+    out.push(`/* ${theme} · dark, stored choice */`)
     out.push(block(selectors[theme].dark, themeModeLines(theme, 'dark')))
   }
-  out.push(
-    '/* OS dark mode: only when the stored choice is "system" or (default theme) nothing. */'
-  )
+  out.push('/* OS dark mode: only when the stored choice is "system" or nothing. */')
   out.push('@media (prefers-color-scheme: dark) {')
   for (const theme of themeNames) {
     out.push(block(selectors[theme].systemDark, themeModeLines(theme, 'dark'), '  '))
@@ -171,7 +183,7 @@ export function renderTokensCss(): string {
   for (const service of serviceNames) {
     out.push(
       block(`[data-service="${service}"]`, [
-        decl('service-accent', v(services[service].neon)),
+        decl('service-accent', v(services[service].dark)),
         decl('service-accent-text', v(`service-${service}-text`))
       ])
     )
@@ -220,9 +232,6 @@ export function renderTokensCss(): string {
 /** Tailwind 4 `dark:` variant that follows the same rules as `tokens.css`. */
 const darkVariant = `@custom-variant dark {
   &:where([data-mode="dark"], [data-mode="dark"] *) {
-    @slot;
-  }
-  &:where([data-theme="cyberpunk"]:not([data-mode]), [data-theme="cyberpunk"]:not([data-mode]) *) {
     @slot;
   }
   @media (prefers-color-scheme: dark) {
@@ -303,8 +312,8 @@ export function renderTokensJson(): string {
       serviceNames.map((s) => [
         s,
         {
-          neon: primitives[services[s].neon],
-          deep: primitives[services[s].deep]
+          dark: primitives[services[s].dark],
+          light: primitives[services[s].light]
         }
       ])
     ),
