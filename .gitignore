@@ -13,3 +13,6 @@ coverage/
 
 # Fonts fetched at build time (never commit font binaries without their OFL text)
 .cache/
+
+# Review screenshots (pnpm --filter @synthwerk/tokens screenshots)
+screenshots/
