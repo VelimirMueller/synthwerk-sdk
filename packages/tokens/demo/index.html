@@ -1,0 +1,563 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>@synthwerk/tokens demo</title>
+    <!-- First-paint script (blocking, before the stylesheet). Apps inline `firstPaintScript` instead. -->
+    <script src="../dist/first-paint.js"></script>
+    <link rel="stylesheet" href="../dist/tokens.css">
+    <style>
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--fg);
+      font-family: var(--font-sans);
+      font-size: var(--text-base);
+      line-height: var(--text-base-line-height);
+    }
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background: var(--texture-grid);
+    }
+    main {
+      position: relative;
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 24px 16px 64px;
+    }
+    header {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      align-items: center;
+      justify-content: space-between;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--border);
+    }
+    header img {
+      height: 48px;
+      width: auto;
+    }
+    .logo-dark,
+    [data-effective="dark"] .logo-light {
+      display: none;
+    }
+    [data-effective="dark"] .logo-dark {
+      display: block;
+    }
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    fieldset {
+      display: flex;
+      gap: 4px;
+      margin: 0;
+      padding: 4px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-pill);
+      background: var(--surface);
+    }
+    legend {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+    }
+    fieldset label {
+      position: relative;
+      padding: 4px 12px;
+      border-radius: var(--radius-pill);
+      font-size: var(--text-sm);
+      color: var(--fg-muted);
+      cursor: pointer;
+      transition: background-color var(--duration-fast) var(--motion-ease-standard);
+    }
+    fieldset input {
+      position: absolute;
+      opacity: 0;
+    }
+    fieldset label:has(input:checked) {
+      background: var(--btn-primary-bg);
+      color: var(--btn-primary-fg);
+    }
+    fieldset label:has(input:focus-visible) {
+      outline: var(--focus-outline);
+      outline-offset: var(--focus-outline-offset);
+    }
+    h1,
+    h2 {
+      font-family: var(--font-display);
+      font-weight: 700;
+    }
+    h2 {
+      margin: 40px 0 4px;
+      font-size: var(--text-2xl);
+      line-height: var(--text-2xl-line-height);
+    }
+    .overline {
+      font-family: var(--font-mono);
+      font-size: var(--text-xs);
+      line-height: var(--text-xs-line-height);
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--fg-subtle);
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(168px, 1fr));
+      gap: 12px;
+      margin-top: 16px;
+    }
+    .swatch {
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      background: var(--surface);
+      font-size: var(--text-sm);
+      line-height: var(--text-sm-line-height);
+    }
+    .swatch .chip {
+      height: 48px;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+    .swatch div:last-child {
+      padding: 8px 10px;
+    }
+    code {
+      font-family: var(--font-mono);
+      font-size: var(--text-xs);
+    }
+    .muted {
+      color: var(--fg-muted);
+    }
+    .surfaces {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 12px;
+      margin-top: 16px;
+    }
+    .surface {
+      padding: 16px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+    }
+    .surface p {
+      margin: 2px 0;
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .ratio {
+      font-family: var(--font-mono);
+      font-size: var(--text-xs);
+      color: var(--fg-subtle);
+    }
+    .row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+      margin-top: 16px;
+    }
+    .btn {
+      font: inherit;
+      font-weight: 600;
+      padding: 8px 16px;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition:
+        transform var(--duration-instant) var(--motion-ease-standard),
+        box-shadow var(--duration-fast) var(--motion-ease-standard);
+    }
+    .btn:active {
+      transform: scale(0.97);
+    }
+    .btn:focus-visible {
+      outline: var(--focus-outline);
+      outline-offset: var(--focus-outline-offset);
+    }
+    .btn-primary {
+      background: var(--btn-primary-bg);
+      color: var(--btn-primary-fg);
+      border: 1px solid transparent;
+    }
+    .btn-primary:hover {
+      box-shadow: var(--glow);
+    }
+    .btn-secondary {
+      background: var(--btn-secondary-bg);
+      color: var(--btn-secondary-fg);
+      border: 1px solid var(--btn-secondary-border);
+    }
+    .btn-accent-2 {
+      background: var(--accent-2);
+      color: var(--accent-2-fg);
+      border: 1px solid transparent;
+    }
+    a {
+      color: var(--link-fg);
+    }
+    a:hover {
+      color: var(--link-fg-hover);
+    }
+    input[type="text"] {
+      font: inherit;
+      padding: 8px 12px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--input-border);
+      background: var(--input-bg);
+      color: var(--fg);
+    }
+    input[type="text"]:focus {
+      outline: none;
+      border-color: var(--input-border-focus);
+      box-shadow: 0 0 0 1px var(--input-border-focus);
+    }
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: var(--card-radius);
+      box-shadow: var(--card-shadow);
+      padding: 20px;
+      max-width: 360px;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 2px 10px;
+      border-radius: var(--radius-pill);
+      background: var(--badge-service-bg);
+      color: var(--badge-service-fg);
+      font-family: var(--font-mono);
+      font-size: var(--text-xs);
+      border: 1px solid var(--service-accent);
+    }
+    .stripe {
+      height: 4px;
+      border-radius: 2px;
+      background: var(--service-accent);
+    }
+    .signal {
+      height: 48px;
+      border-radius: var(--radius-md);
+      background: var(--gradient-signal);
+      margin-top: 16px;
+    }
+    .type-scale p {
+      margin: 8px 0;
+    }
+    .boxes {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 16px;
+    }
+    .box {
+      width: 132px;
+      padding: 12px;
+      text-align: center;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      font-size: var(--text-sm);
+    }
+    .motion .box {
+      transition: transform var(--d) var(--e);
+    }
+    .motion .box:hover {
+      transform: translateY(-6px);
+    }
+    footer {
+      margin-top: 48px;
+      color: var(--fg-subtle);
+      font-size: var(--text-sm);
+    }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <div>
+          <img class="logo-light" src="../assets/synthwerk-logo-light.svg" alt="synthwerk">
+          <img class="logo-dark" src="../assets/synthwerk-logo-dark.svg" alt="synthwerk">
+          <p class="overline">// @synthwerk/tokens · <span id="state"></span></p>
+        </div>
+        <div class="controls">
+          <fieldset>
+            <legend>Theme</legend>
+            <label><input type="radio" name="theme" value="default">default</label>
+            <label><input type="radio" name="theme" value="cyberpunk">cyberpunk</label>
+          </fieldset>
+          <fieldset>
+            <legend>Mode</legend>
+            <label><input type="radio" name="mode" value="light">light</label>
+            <label><input type="radio" name="mode" value="dark">dark</label>
+            <label><input type="radio" name="mode" value="system">system</label>
+          </fieldset>
+        </div>
+      </header>
+
+      <h2>Semantic colours</h2>
+      <p class="overline">// one value per theme × mode · ratio = contrast on --bg</p>
+      <div class="grid" id="semantic"></div>
+
+      <h2>Text on surfaces</h2>
+      <p class="overline">// WCAG 2.2 · body text ≥ 4.5 · UI ≥ 3</p>
+      <div class="surfaces" id="surfaces"></div>
+
+      <h2>Components</h2>
+      <p class="overline">// component tokens point to semantic tokens</p>
+      <div class="row">
+        <button class="btn btn-primary" type="button">Save changes</button>
+        <button class="btn btn-secondary" type="button">Cancel</button>
+        <button class="btn btn-accent-2" type="button">Highlight</button>
+        <a href="#components">A text link</a>
+        <input type="text" placeholder="Search tokens" aria-label="Search tokens">
+      </div>
+      <div class="row">
+        <div class="card">
+          <p class="overline">// card</p>
+          <h3 style="margin: 4px 0; font-family: var(--font-display)">Connect a service</h3>
+          <p class="muted" style="margin: 0">The model runs on your machine. No data leaves it.</p>
+        </div>
+      </div>
+
+      <h2>Service accents</h2>
+      <p class="overline">// [data-service] sets --service-accent and --service-accent-text</p>
+      <div class="grid" id="services"></div>
+
+      <h2>Signal and status</h2>
+      <p class="overline">// --gradient-signal · status colours</p>
+      <div class="signal"></div>
+      <div class="row" id="status"></div>
+
+      <h2>Typography</h2>
+      <p class="overline">
+        // Space Grotesk · Inter · JetBrains Mono (system fallback when not installed)
+      </p>
+      <div class="type-scale" id="type"></div>
+
+      <h2>Radii and shadows</h2>
+      <p class="overline">// --radius-* · --shadow-card-v · --glow</p>
+      <div class="boxes" id="radii"></div>
+
+      <h2>Motion</h2>
+      <p class="overline">// hover a box · durations become 0.01ms with prefers-reduced-motion</p>
+      <div class="boxes motion" id="motion"></div>
+
+      <h2>Primitives</h2>
+      <p class="overline">// raw values · never used in components</p>
+      <div class="grid" id="primitives"></div>
+
+      <footer>
+        Generated tokens: <code>dist/tokens.css</code>, <code>dist/tailwind.css</code>,
+        <code>dist/tokens.json</code>.
+      </footer>
+    </main>
+
+    <script type="module">
+    import {
+      contrastRatio,
+      motion,
+      PREFS_KEY,
+      primitives,
+      radii,
+      resolveColors,
+      resolveMode,
+      semanticColorNames,
+      serviceNames,
+      textScale
+    } from '../dist/index.js'
+
+    const html = document.documentElement
+    const $ = (id) => document.getElementById(id)
+    const el = (tag, attrs = {}, text = '') => {
+      const node = document.createElement(tag)
+      for (const [k, v] of Object.entries(attrs)) node.setAttribute(k, v)
+      if (text) node.textContent = text
+      return node
+    }
+    const system = matchMedia('(prefers-color-scheme: dark)')
+
+    const readPrefs = () => {
+      try {
+        return JSON.parse(localStorage.getItem(PREFS_KEY) || '{}') || {}
+      } catch {
+        return {}
+      }
+    }
+
+    function current() {
+      const theme = html.getAttribute('data-theme') === 'cyberpunk' ? 'cyberpunk' : 'default'
+      const stored = html.getAttribute('data-mode') ?? undefined
+      return { theme, stored, mode: resolveMode(theme, stored, system.matches) }
+    }
+
+    function swatch(name, value, note) {
+      const card = el('div', { class: 'swatch' })
+      const chip = el('div', { class: 'chip' })
+      chip.style.background = value
+      const body = el('div')
+      body.append(el('code', {}, name), el('br'))
+      body.append(el('span', { class: 'muted' }, note))
+      card.append(chip, body)
+      return card
+    }
+
+    function render() {
+      const { theme, stored, mode } = current()
+      html.setAttribute('data-effective', mode)
+      $('state').textContent = `${theme} · ${mode}${stored ? '' : ' (nothing stored)'}`
+      for (const input of document.querySelectorAll('input[name=theme]'))
+        input.checked = input.value === theme
+      for (const input of document.querySelectorAll('input[name=mode]'))
+        input.checked = input.value === (stored ?? (theme === 'cyberpunk' ? 'dark' : 'system'))
+
+      const colors = resolveColors(theme, mode)
+      const semantic = $('semantic')
+      semantic.replaceChildren(
+        ...semanticColorNames.map((name) =>
+          swatch(
+            `--${name}`,
+            `var(--${name})`,
+            `${colors[name]} · ${contrastRatio(colors[name], colors.bg).toFixed(2)}`
+          )
+        )
+      )
+
+      const text = [
+        'fg',
+        'fg-muted',
+        'fg-subtle',
+        'accent-text',
+        'accent-2-text',
+        'success',
+        'warning',
+        'danger',
+        'info'
+      ]
+      $('surfaces').replaceChildren(
+        ...['bg', 'surface', 'surface-2'].map((surface) => {
+          const box = el('div', { class: 'surface' })
+          box.style.background = `var(--${surface})`
+          box.append(el('p', { class: 'overline' }, `on --${surface}`))
+          for (const t of text) {
+            const p = el('p')
+            const label = el('span', {}, `--${t}`)
+            label.style.color = `var(--${t})`
+            p.append(
+              label,
+              el('span', { class: 'ratio' }, contrastRatio(colors[t], colors[surface]).toFixed(2))
+            )
+            box.append(p)
+          }
+          return box
+        })
+      )
+
+      $('services').replaceChildren(
+        ...serviceNames.map((service) => {
+          const card = el('div', { class: 'swatch', 'data-service': service })
+          const body = el('div')
+          body.append(el('span', { class: 'badge' }, service), el('br'))
+          const t = el('span', {}, `--service-accent-text`)
+          t.style.color = 'var(--service-accent-text)'
+          body.append(t)
+          const stripe = el('div', { class: 'stripe' })
+          card.append(stripe, body)
+          return card
+        })
+      )
+
+      $('status').replaceChildren(
+        ...['success', 'warning', 'danger', 'info'].map((s) => {
+          const span = el('span', { class: 'badge' }, s)
+          span.style.color = `var(--${s})`
+          span.style.borderColor = `var(--${s})`
+          span.style.background = 'transparent'
+          return span
+        })
+      )
+    }
+
+    function renderStatic() {
+      $('type').replaceChildren(
+        ...Object.entries(textScale)
+          .reverse()
+          .map(([name, step]) => {
+            const p = el(
+              'p',
+              {},
+              `text-${name} · ${step.size}/${step.lineHeight} · Patch the signal into the module.`
+            )
+            p.style.fontSize = `var(--text-${name})`
+            p.style.lineHeight = `var(--text-${name}-line-height)`
+            p.style.fontFamily =
+              name === 'xs'
+                ? 'var(--font-mono)'
+                : step.size >= 20
+                  ? 'var(--font-display)'
+                  : 'var(--font-sans)'
+            if ('tracking' in step) p.style.letterSpacing = step.tracking
+            if (step.size >= 20) p.style.fontWeight = '700'
+            return p
+          })
+      )
+      const radiiBoxes = Object.keys(radii).map((name) => {
+        const b = el('div', { class: 'box' }, `--radius-${name}`)
+        b.style.borderRadius = `var(--radius-${name})`
+        return b
+      })
+      const card = el('div', { class: 'box' }, '--shadow-card-v')
+      card.style.boxShadow = 'var(--shadow-card-v)'
+      card.style.background = 'var(--surface)'
+      const glow = el('div', { class: 'box' }, '--glow')
+      glow.style.boxShadow = 'var(--glow)'
+      $('radii').replaceChildren(...radiiBoxes, card, glow)
+
+      const eases = Object.keys(motion.ease)
+      $('motion').replaceChildren(
+        ...Object.keys(motion.duration).map((name, i) => {
+          const ease = eases[i % eases.length]
+          const b = el('div', { class: 'box' }, `--duration-${name}\n${ease}`)
+          b.style.whiteSpace = 'pre-line'
+          b.style.setProperty('--d', `var(--duration-${name})`)
+          b.style.setProperty('--e', `var(--motion-ease-${ease})`)
+          return b
+        })
+      )
+      $('primitives').replaceChildren(
+        ...Object.entries(primitives).map(([name, hex]) => swatch(`--${name}`, hex, hex))
+      )
+    }
+
+    function save(patch) {
+      const prefs = { ...readPrefs(), ...patch }
+      try {
+        localStorage.setItem(PREFS_KEY, JSON.stringify(prefs))
+      } catch {}
+      if (prefs.theme) html.setAttribute('data-theme', prefs.theme)
+      if (prefs.mode) html.setAttribute('data-mode', prefs.mode)
+      render()
+    }
+
+    for (const input of document.querySelectorAll('input[name=theme]'))
+      input.addEventListener('change', () => save({ theme: input.value }))
+    for (const input of document.querySelectorAll('input[name=mode]'))
+      input.addEventListener('change', () => save({ mode: input.value }))
+    system.addEventListener('change', render)
+    renderStatic()
+    render()
+    </script>
+  </body>
+</html>
