@@ -1,6 +1,6 @@
 ---
 title: Brand tokens
-slug: brand_tokens
+slug: brand-tokens
 status: beta
 epic: E0
 owner: sdk
@@ -35,8 +35,10 @@ updated: 2026-10-09
 
 - Fonts: Inter (body), Space Mono (display, labels, pills, code snippets), JetBrains Mono (code blocks).
 - `default` light matches velimir-mueller.de: page `#FAFAFA`, card `#FFFFFF`, line `#E4E4E7`, ink `#18181B`, sub `#71717A`.
-- `default` dark matches the code-context dashboard: page `#0C0C10`, panels `#131318` / `#18181F` / `#1E1E28`, lines `#1C1C28` / `#282838`, text `#E4E4E7` / `#A1A1AA`.
-- Accents: emerald `#10B981` / `#34D399` (primary), indigo `#6366F1` (accent line), status amber `#FBBF24`, pink `#F472B6`, violet `#A78BFA`, red `#F87171`, blue `#3B82F6`.
+- `default` dark matches the code-context dashboard.
+- Dark page `#0C0C10`, panels `#131318` / `#18181F` / `#1E1E28`, lines `#1C1C28` / `#282838`, text `#E4E4E7` / `#A1A1AA`.
+- Accents: emerald `#10B981` / `#34D399` (primary) and indigo `#6366F1` (accent line).
+- Status colours: amber `#FBBF24`, pink `#F472B6`, violet `#A78BFA`, red `#F87171`, blue `#3B82F6`.
 - The primary button is a white pill on dark and a near-black pill on light.
 - Card radius is 24 px, dashboard panels 14 px, pills fully rounded.
 
