@@ -64,7 +64,8 @@ export function renderEffects(effects: SemanticEffects): Record<keyof SemanticEf
     glow: renderShadow(effects.glow),
     'shadow-card-v': renderShadow(effects['shadow-card-v']),
     'gradient-signal': v(effects['gradient-signal']),
-    'texture-grid': renderTexture(effects['texture-grid'])
+    'texture-grid': renderTexture(effects['texture-grid']),
+    'badge-service-tint': `${effects['badge-service-tint']}%`
   }
 }
 

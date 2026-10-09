@@ -56,7 +56,9 @@ updated: 2026-10-09
 | Nothing stored, `cyberpunk` | Dark. |
 | Stored choice | Always wins over the OS. |
 | Body text contrast | ≥ 4.5:1 on `--bg`, `--surface` and `--surface-2` |
-| UI contrast (`--ring`, print signal on paper) | ≥ 3:1 |
+| UI contrast (`--ring`, `--border-control`, print signal on paper) | ≥ 3:1 on `--bg`, `--surface` and `--surface-2` |
+| Control boundary (input, select, checkbox, secondary button) | `--border-control` (WCAG 1.4.11). `--border` is for decorative dividers only. |
+| Service badge | Text `--service-accent-text`. Fill tint 0 % in light modes, 14 % neon in dark modes. Text ≥ 4.5:1 on the fill. |
 | `tokens.css` size | ≤ 8 KB gzip (now 2.7 KB) |
 | Fonts | Space Grotesk, Inter, JetBrains Mono. SIL OFL 1.1. Self-hosted. Not bundled. |
 | Reduced motion | All durations `0.01ms`. Animations run one time. |
@@ -76,6 +78,8 @@ updated: 2026-10-09
 ## Tests
 
 - `tests/unit/tokens/contrast.test.ts` — `text token on surface - every theme × mode - at least 4.5`
+- `tests/unit/tokens/contrast.test.ts` — `border-control (UI, WCAG 1.4.11) on surface - ratio - at least 3`
+- `tests/unit/tokens/contrast.test.ts` — `service badge text on badge fill - ratio - at least 4.5`
 - `tests/unit/tokens/contrast.test.ts` — `brand doc §6 tables - computed ratios - equal the doc`
 - `tests/unit/tokens/css.test.ts` — `theme × mode block - every semantic token - declared`
 - `tests/unit/tokens/css.test.ts` — `Tailwind 4 compile - token utilities - map to the runtime variables`
@@ -88,4 +92,5 @@ updated: 2026-10-09
 
 | Date | Change |
 |---|---|
+| 2026-10-09 | Add `--border-control` (3:1 control boundaries, WCAG 1.4.11). Badge fill tint is 0 % in light modes. |
 | 2026-10-09 | First version (story S-E0-10). |

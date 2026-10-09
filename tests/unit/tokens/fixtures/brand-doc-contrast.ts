@@ -62,6 +62,14 @@ export const ringOnBg = {
   cyberpunk·dark: 15.99
 } as const
 
+/** `--border-control` on [--bg, --surface, --surface-2] (UI, needs 3:1, WCAG 1.4.11). */
+export const borderControlTable = {
+  default·light: [3.28, 3.42, 3.11],
+  default·dark: [3.77, 3.55, 3.36],
+  cyberpunk·light: [5.37, 5.74, 5.04],
+  cyberpunk·dark: [3.52, 3.37, 3.27]
+} as const
+
 /** Service accents: neon on [void, void-850, zinc-950, zinc-850]; deep on [#FAFAFA, #F4F4F5, #F7F7FB, #EEF0F6]. */
 export const serviceTable = {
   studio: { neon: [15.99, 14.87, 15.77, 14.04], deep: [5.11, 4.85, 4.99, 4.68] },

@@ -9,9 +9,16 @@ import {
   serviceNames,
   services,
   type ThemeName,
-  themeNames
+  themeNames,
+  themes
 } from '../../../packages/tokens/src/tokens.ts'
-import { brandNotes, ringOnBg, serviceTable, textTable } from './fixtures/brand-doc-contrast.ts'
+import {
+  borderControlTable,
+  brandNotes,
+  ringOnBg,
+  serviceTable,
+  textTable
+} from './fixtures/brand-doc-contrast.ts'
 
 const combos = themeNames.flatMap((theme) => modes.map((mode) => [theme, mode] as const))
 const key = (theme: ThemeName, mode: Mode) => `${theme}·${mode}` as const
@@ -31,6 +38,14 @@ const TEXT: readonly SemanticColor[] = [
 const SURFACES: readonly SemanticColor[] = ['bg', 'surface', 'surface-2']
 const AA_TEXT = 4.5
 const AA_UI = 3
+
+/** `color` at `alpha` percent painted over an opaque `backdrop` (sRGB source-over), as #RRGGBB. */
+function composite(color: string, alpha: number, backdrop: string): string {
+  const ch = (hex: string, i: number) => Number.parseInt(hex.slice(1 + i * 2, 3 + i * 2), 16)
+  const a = alpha / 100
+  const out = [0, 1, 2].map((i) => Math.round(ch(color, i) * a + ch(backdrop, i) * (1 - a)))
+  return `#${out.map((n) => n.toString(16).padStart(2, '0')).join('')}`
+}
 
 describe('contrastRatio', () => {
   it('contrastRatio - black on white - 21', () => {
@@ -73,6 +88,21 @@ describe.each(combos)('WCAG AA · %s · %s', (theme, mode) => {
     expect(contrastRatio(c.ring, c[surface])).toBeGreaterThanOrEqual(AA_UI)
   })
 
+  it.each(SURFACES)('border-control (UI, WCAG 1.4.11) on %s - ratio - at least 3', (surface) => {
+    expect(contrastRatio(c['border-control'], c[surface])).toBeGreaterThanOrEqual(AA_UI)
+  })
+
+  it.each(serviceNames.flatMap((s) => SURFACES.map((surface) => [s, surface] as const)))(
+    'service %s badge text on badge fill over %s - ratio - at least 4.5',
+    (service, surface) => {
+      const s = services[service]
+      const text = primitives[mode === 'dark' ? s.neon : s.deep]
+      const tint = themes[theme][mode].effects['badge-service-tint']
+      const fill = composite(primitives[s.neon], tint, c[surface])
+      expect(contrastRatio(text, fill)).toBeGreaterThanOrEqual(AA_TEXT)
+    }
+  )
+
   it.each(serviceNames.flatMap((s) => SURFACES.map((surface) => [s, surface] as const)))(
     'service %s text on %s - ratio - at least 4.5',
     (service, surface) => {
@@ -102,6 +132,11 @@ describe('brand doc §6 tables', () => {
         expect(grade(Math.min(bg, s2))).toBe(docGrade)
       }
     )
+
+    it('border-control on bg / surface / surface-2 - computed ratios - equal the doc', () => {
+      const r = SURFACES.map((surface) => round2(contrastRatio(c['border-control'], c[surface])))
+      expect(r).toEqual(borderControlTable[key(theme, mode)])
+    })
 
     it('ring on bg - computed ratio - equals the doc', () => {
       expect(round2(contrastRatio(c.ring, c.bg))).toBe(ringOnBg[key(theme, mode)])

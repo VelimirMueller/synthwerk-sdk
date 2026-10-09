@@ -114,6 +114,7 @@ export const semanticColorNames = [
   'surface-2',
   'border',
   'border-subtle',
+  'border-control',
   'fg',
   'fg-muted',
   'fg-subtle',
@@ -162,13 +163,16 @@ export interface SemanticEffects {
   readonly 'shadow-card-v': Shadow
   readonly 'gradient-signal': Gradient
   readonly 'texture-grid': TextureGrid | 'none'
+  /** Share of `--service-accent` in the service badge fill, in percent. */
+  readonly 'badge-service-tint': number
 }
 
 export const semanticEffectNames = [
   'glow',
   'shadow-card-v',
   'gradient-signal',
-  'texture-grid'
+  'texture-grid',
+  'badge-service-tint'
 ] as const satisfies readonly (keyof SemanticEffects)[]
 
 export interface ThemeMode {
@@ -187,6 +191,7 @@ export const themes = {
         'surface-2': 'zinc-100',
         border: 'zinc-200',
         'border-subtle': 'zinc-100',
+        'border-control': 'zinc-450',
         fg: 'zinc-950',
         'fg-muted': 'zinc-600',
         'fg-subtle': 'zinc-550',
@@ -209,7 +214,8 @@ export const themes = {
           { x: 0, y: 4, blur: 24, spread: -8, color: tint('black', 8) }
         ],
         'gradient-signal': 'signal-print',
-        'texture-grid': 'none'
+        'texture-grid': 'none',
+        'badge-service-tint': 0
       }
     },
     dark: {
@@ -219,6 +225,7 @@ export const themes = {
         'surface-2': 'zinc-850',
         border: 'zinc-800',
         'border-subtle': 'zinc-850',
+        'border-control': 'zinc-550',
         fg: 'zinc-100',
         'fg-muted': 'zinc-400',
         'fg-subtle': 'zinc-450',
@@ -238,7 +245,8 @@ export const themes = {
         glow: [{ x: 0, y: 0, blur: 40, spread: -10, color: tint('white', 8) }],
         'shadow-card-v': [{ x: 0, y: 0, blur: 0, spread: 1, color: tint('white', 5) }],
         'gradient-signal': 'signal-neon',
-        'texture-grid': 'none'
+        'texture-grid': 'none',
+        'badge-service-tint': 14
       }
     }
   },
@@ -250,6 +258,7 @@ export const themes = {
         'surface-2': 'mist-100',
         border: 'mist-200',
         'border-subtle': 'mist-100',
+        'border-control': 'slate-600',
         fg: 'slate-950',
         'fg-muted': 'slate-700',
         'fg-subtle': 'slate-600',
@@ -269,7 +278,8 @@ export const themes = {
         glow: [{ x: 0, y: 0, blur: 20, color: tint('deep-cyan', 18) }],
         'shadow-card-v': [{ x: 0, y: 4, blur: 24, spread: -8, color: tint('neon-uv-deep', 12) }],
         'gradient-signal': 'signal-print',
-        'texture-grid': { line: tint('slate-950', 4), size: 24 }
+        'texture-grid': { line: tint('slate-950', 4), size: 24 },
+        'badge-service-tint': 0
       }
     },
     dark: {
@@ -279,6 +289,7 @@ export const themes = {
         'surface-2': 'void-850',
         border: 'void-700',
         'border-subtle': 'void-800',
+        'border-control': 'slate-600',
         fg: 'glacier-100',
         'fg-muted': 'glacier-300',
         'fg-subtle': 'glacier-400',
@@ -304,7 +315,8 @@ export const themes = {
           { x: 0, y: 0, blur: 40, color: tint('neon-cyan', 6) }
         ],
         'gradient-signal': 'signal-neon',
-        'texture-grid': { line: tint('neon-cyan', 4), size: 24 }
+        'texture-grid': { line: tint('neon-cyan', 4), size: 24 },
+        'badge-service-tint': 14
       }
     }
   }
@@ -328,7 +340,7 @@ export const components = {
   'btn-primary-ring': 'var(--ring)',
   'btn-secondary-bg': 'transparent',
   'btn-secondary-fg': 'var(--fg)',
-  'btn-secondary-border': 'var(--border)',
+  'btn-secondary-border': 'var(--border-control)',
   'link-fg': 'var(--accent-text)',
   'link-fg-hover': 'var(--accent-2-text)',
   'card-bg': 'var(--surface)',
@@ -336,9 +348,12 @@ export const components = {
   'card-shadow': 'var(--shadow-card-v)',
   'card-radius': 'var(--radius-card)',
   'input-bg': 'var(--surface)',
-  'input-border': 'var(--border)',
+  'input-border': 'var(--border-control)',
+  'select-border': 'var(--border-control)',
+  'checkbox-border': 'var(--border-control)',
   'input-border-focus': 'var(--ring)',
-  'badge-service-bg': 'color-mix(in oklch, var(--service-accent) 14%, transparent)',
+  'badge-service-bg':
+    'color-mix(in oklch, var(--service-accent) var(--badge-service-tint), transparent)',
   'badge-service-fg': 'var(--service-accent-text)',
   'focus-outline': '2px solid var(--ring)',
   'focus-outline-offset': '2px'
