@@ -1,7 +1,7 @@
 {
   "name": "@synthwerk/tokens",
-  "version": "0.1.0",
-  "description": "Synthwerk design tokens: CSS custom properties, Tailwind 4 theme, JSON and typed exports",
+  "version": "0.2.0",
+  "description": "Synthwerk design tokens (public look, D-41): CSS custom properties, Tailwind 4 theme, JSON and typed exports",
   "license": "MIT",
   "author": "Velimir Mueller",
   "repository": {
@@ -30,9 +30,10 @@
   ],
   "scripts": {
     "build": "tsc -p tsconfig.build.json && node scripts/build.ts",
-    "demo": "pnpm run build && node scripts/serve.ts",
+    "fonts": "node scripts/fonts.ts",
+    "demo": "pnpm run build && node scripts/fonts.ts && node scripts/serve.ts",
     "wordmark": "node scripts/outline-wordmark.ts",
-    "screenshots": "pnpm run build && node scripts/screenshots.ts"
+    "screenshots": "pnpm run build && node scripts/fonts.ts && node scripts/screenshots.ts"
   },
   "peerDependencies": {
     "tailwindcss": "^4.3.3"
