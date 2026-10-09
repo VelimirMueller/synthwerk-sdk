@@ -38,9 +38,19 @@ describe('token layers', () => {
   })
 
   it('effects - every tint - references an existing primitive', () => {
-    const tints = [...JSON.stringify(themes).matchAll(/"tint":"([\w-]+)"/g)].map((m) => m[1])
+    const tints: string[] = []
+    for (const theme of themeNames) {
+      for (const mode of modes) {
+        const e = themes[theme][mode].effects
+        for (const shadow of [e.glow, e['shadow-card-v']]) {
+          if (shadow !== 'none') for (const layer of shadow) tints.push(layer.color.tint)
+        }
+        if (e['texture-grid'] !== 'none') tints.push(e['texture-grid'].line.tint)
+        expect(Object.keys(gradients)).toContain(e['gradient-signal'])
+      }
+    }
     expect(tints.length).toBeGreaterThan(0)
-    for (const t of tints) expect(primitiveNames.has(t as string)).toBe(true)
+    for (const t of tints) expect(primitiveNames.has(t)).toBe(true)
   })
 
   it('component, service, brand and gradient layers - values - contain no hex', () => {

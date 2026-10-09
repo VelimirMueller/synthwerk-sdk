@@ -77,6 +77,9 @@ export function renderEffects(effects: SemanticEffects): Record<keyof SemanticEf
  *
  * Nothing stored: `default` follows the OS, `cyberpunk` is dark.
  * A stored choice always wins (brand doc §2 Q1).
+ *
+ * Nested scopes (a `[data-theme]` element below `<html>`) must set `data-mode` explicitly:
+ * the OS-dark rule for `default` without `data-mode` matches `:root` only.
  */
 export const selectors = {
   default: {

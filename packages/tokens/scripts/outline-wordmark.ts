@@ -8,7 +8,7 @@
 //
 // Run: pnpm --filter @synthwerk/tokens wordmark   (needs network on the first run)
 import { createHash } from 'node:crypto'
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import opentype from 'opentype.js'
 import { type Primitive, primitives } from '../src/tokens.ts'
@@ -24,17 +24,24 @@ const root = new URL('../', import.meta.url)
 const cacheDir = fileURLToPath(new URL('.cache/fonts/', root))
 const assetsDir = fileURLToPath(new URL('assets/', root))
 
+async function download(name: keyof typeof FILES): Promise<Buffer> {
+  const res = await fetch(`${BASE}/${encodeURIComponent(name)}`)
+  if (!res.ok) throw new Error(`Download of ${name} failed: HTTP ${res.status}`)
+  return Buffer.from(await res.arrayBuffer())
+}
+
+const sha256 = (data: Buffer): string => createHash('sha256').update(data).digest('hex')
+
+/** Returns the pinned file. A cached copy with a wrong hash is downloaded again once. */
 async function fetchPinned(name: keyof typeof FILES): Promise<Buffer> {
   const path = cacheDir + name
-  let data: Buffer
   if (existsSync(path)) {
-    data = readFileSync(path)
-  } else {
-    const res = await fetch(`${BASE}/${encodeURIComponent(name)}`)
-    if (!res.ok) throw new Error(`Download of ${name} failed: HTTP ${res.status}`)
-    data = Buffer.from(await res.arrayBuffer())
+    const cached = readFileSync(path)
+    if (sha256(cached) === FILES[name]) return cached
+    rmSync(path)
   }
-  const sha = createHash('sha256').update(data).digest('hex')
+  const data = await download(name)
+  const sha = sha256(data)
   if (sha !== FILES[name]) throw new Error(`${name}: SHA-256 ${sha} does not match the pin`)
   mkdirSync(cacheDir, { recursive: true })
   writeFileSync(path, data)
@@ -118,7 +125,6 @@ async function main(): Promise<void> {
   mkdirSync(assetsDir, { recursive: true })
 
   for (const [mode, p] of Object.entries(palettes)) {
-    const id = `sw-signal-${mode}`
     // Horizontal lockup, 400 × 96 (same frame as the concept file).
     writeFileSync(
       `${assetsDir}synthwerk-logo-${mode}.svg`,
@@ -127,7 +133,7 @@ async function main(): Promise<void> {
         96,
         '0 0 400 96',
         'synthwerk',
-        `${gradient(id, p)}<g transform="scale(2)">${markShapes(id, p)}</g><path fill="${p.ink}" d="${d}"/>`,
+        `${gradient(`sw-logo-${mode}`, p)}<g transform="scale(2)">${markShapes(`sw-logo-${mode}`, p)}</g><path fill="${p.ink}" d="${d}"/>`,
         `synthwerk lockup, ${mode} surfaces. ${credit}`
       )
     )
@@ -156,7 +162,7 @@ async function main(): Promise<void> {
         48,
         '0 0 48 48',
         'synthwerk',
-        `${gradient(id, p)}${markShapes(id, p)}`,
+        `${gradient(`sw-mark-${mode}`, p)}${markShapes(`sw-mark-${mode}`, p)}`,
         `synthwerk mark, ${mode} surfaces.`
       )
     )

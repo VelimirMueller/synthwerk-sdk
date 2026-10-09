@@ -51,49 +51,51 @@ function expect(label: string, actual: string, expected: string): void {
 
 const bg = (theme: ThemeName, mode: Mode): string => resolveColors(theme, mode).bg
 
-for (const theme of themeNames) {
-  for (const mode of modes) {
-    const file = `${outDir}/tokens-${theme}-${mode}.png`
-    // Stored choice wins over the OS: emulate the opposite OS scheme.
-    const os = mode === 'dark' ? 'light' : 'dark'
-    expect(
-      `${theme} · stored ${mode} · OS ${os}`,
-      await bgFor({ theme, mode }, os, file),
-      bg(theme, mode)
-    )
-    console.log(`     ${file}`)
+try {
+  for (const theme of themeNames) {
+    for (const mode of modes) {
+      const file = `${outDir}/tokens-${theme}-${mode}.png`
+      // Stored choice wins over the OS: emulate the opposite OS scheme.
+      const os = mode === 'dark' ? 'light' : 'dark'
+      expect(
+        `${theme} · stored ${mode} · OS ${os}`,
+        await bgFor({ theme, mode }, os, file),
+        bg(theme, mode)
+      )
+      console.log(`     ${file}`)
+    }
   }
+  // Nothing stored: default follows the OS, cyberpunk opens dark.
+  expect(
+    'default · nothing stored · OS light',
+    await bgFor({ theme: 'default' }, 'light'),
+    bg('default', 'light')
+  )
+  expect(
+    'default · nothing stored · OS dark',
+    await bgFor({ theme: 'default' }, 'dark'),
+    bg('default', 'dark')
+  )
+  expect('no prefs at all · OS dark', await bgFor(null, 'dark'), bg('default', 'dark'))
+  expect(
+    'cyberpunk · nothing stored · OS light',
+    await bgFor({ theme: 'cyberpunk' }, 'light'),
+    bg('cyberpunk', 'dark')
+  )
+  expect(
+    'cyberpunk · stored system · OS light',
+    await bgFor({ theme: 'cyberpunk', mode: 'system' }, 'light'),
+    bg('cyberpunk', 'light')
+  )
+  expect(
+    'cyberpunk · stored system · OS dark',
+    await bgFor({ theme: 'cyberpunk', mode: 'system' }, 'dark'),
+    bg('cyberpunk', 'dark')
+  )
+} finally {
+  await browser.close()
+  server.close()
 }
-// Nothing stored: default follows the OS, cyberpunk opens dark.
-expect(
-  'default · nothing stored · OS light',
-  await bgFor({ theme: 'default' }, 'light'),
-  bg('default', 'light')
-)
-expect(
-  'default · nothing stored · OS dark',
-  await bgFor({ theme: 'default' }, 'dark'),
-  bg('default', 'dark')
-)
-expect('no prefs at all · OS dark', await bgFor(null, 'dark'), bg('default', 'dark'))
-expect(
-  'cyberpunk · nothing stored · OS light',
-  await bgFor({ theme: 'cyberpunk' }, 'light'),
-  bg('cyberpunk', 'dark')
-)
-expect(
-  'cyberpunk · stored system · OS light',
-  await bgFor({ theme: 'cyberpunk', mode: 'system' }, 'light'),
-  bg('cyberpunk', 'light')
-)
-expect(
-  'cyberpunk · stored system · OS dark',
-  await bgFor({ theme: 'cyberpunk', mode: 'system' }, 'dark'),
-  bg('cyberpunk', 'dark')
-)
-
-await browser.close()
-server.close()
 if (failures > 0) {
   console.error(`${failures} theme rule check(s) failed`)
   process.exit(1)

@@ -1,7 +1,7 @@
 // Static file server for the demo page. Run: pnpm --filter @synthwerk/tokens demo
 import { readFile } from 'node:fs/promises'
 import { createServer, type Server } from 'node:http'
-import { extname, normalize, sep } from 'node:path'
+import { extname, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const root = fileURLToPath(new URL('../', import.meta.url))
@@ -16,9 +16,10 @@ const types: Record<string, string> = {
 /** Serves the package folder on 127.0.0.1. Port 0 picks a free port. */
 export function serve(port = 0): Promise<{ server: Server; url: string }> {
   const server = createServer(async (req, res) => {
-    const path = normalize(decodeURIComponent(new URL(req.url ?? '/', 'http://x').pathname))
-    const file = root + (path.endsWith('/') ? `${path}index.html` : path).slice(1)
-    if (!file.startsWith(root) || file.includes(`${sep}..${sep}`)) {
+    const path = decodeURIComponent(new URL(req.url ?? '/', 'http://x').pathname)
+    const file = resolve(root, `.${path.endsWith('/') ? `${path}index.html` : path}`)
+    // Boundary check: the resolved file must stay inside the package folder.
+    if (!file.startsWith(root.endsWith(sep) ? root : root + sep)) {
       res.writeHead(403).end()
       return
     }
