@@ -46,7 +46,8 @@ describe('token layers', () => {
           if (shadow !== 'none') for (const layer of shadow) tints.push(layer.color.tint)
         }
         if (e['texture-grid'] !== 'none') tints.push(e['texture-grid'].line.tint)
-        expect(Object.keys(gradients)).toContain(e['gradient-signal'])
+        if (e['glow-edge'] !== 'none') for (const g of e['glow-edge']) tints.push(g.color.tint)
+        expect(Object.keys(gradients)).toContain(e['gradient-edge'])
       }
     }
     expect(tints.length).toBeGreaterThan(0)
@@ -63,7 +64,7 @@ describe('token layers', () => {
       expect(refs.length).toBeGreaterThan(0)
     }
     for (const s of Object.values(services)) {
-      expect(primitiveNames.has(s.neon) && primitiveNames.has(s.deep)).toBe(true)
+      expect(primitiveNames.has(s.dark) && primitiveNames.has(s.light)).toBe(true)
     }
   })
 

@@ -7,12 +7,12 @@ describe('resolveMode', () => {
   it.each([
     ['default', undefined, false, 'light'],
     ['default', undefined, true, 'dark'],
-    ['cyberpunk', undefined, false, 'dark'],
-    ['cyberpunk', undefined, true, 'dark'],
-    ['cyberpunk', 'system', false, 'light'],
-    ['cyberpunk', 'system', true, 'dark'],
+    ['contrast', undefined, false, 'light'],
+    ['contrast', undefined, true, 'dark'],
+    ['contrast', 'system', false, 'light'],
+    ['contrast', 'system', true, 'dark'],
     ['default', 'system', true, 'dark'],
-    ['cyberpunk', 'light', true, 'light'],
+    ['contrast', 'light', true, 'light'],
     ['default', 'dark', false, 'dark'],
     ['default', 'light', true, 'light']
   ] as const)('resolveMode - %s, stored %s, OS dark %s - %s', (theme, stored, os, expected) => {
@@ -30,8 +30,8 @@ describe('firstPaintScript', () => {
   }
 
   it('firstPaintScript - stored theme and mode - copied to html attributes', () => {
-    expect(run(JSON.stringify({ theme: 'cyberpunk', mode: 'light' }))).toEqual({
-      'data-theme': 'cyberpunk',
+    expect(run(JSON.stringify({ theme: 'contrast', mode: 'light' }))).toEqual({
+      'data-theme': 'contrast',
       'data-mode': 'light'
     })
   })
@@ -42,6 +42,8 @@ describe('firstPaintScript', () => {
 
   it('firstPaintScript - unknown values or broken JSON - ignored without error', () => {
     expect(run(JSON.stringify({ theme: 'neon', mode: 'dim' }))).toEqual({})
+    // 0.1.0 stored "cyberpunk". 0.2.0 drops it, so the page falls back to `default`.
+    expect(run(JSON.stringify({ theme: 'cyberpunk' }))).toEqual({})
     expect(run('{not json')).toEqual({})
   })
 

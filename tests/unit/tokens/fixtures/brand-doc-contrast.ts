@@ -1,92 +1,97 @@
-// Contrast tables copied from docs/ecosystem-plan/07-brand-and-styling.md §6 (2026-10-09).
+// Contrast tables copied from docs/features/brand-tokens.md § Contrast (2026-10-09, D-41 look).
 // The tests compare the computed ratios with these numbers. Do not "fix" a number here to make a
-// test pass: a difference means the brand doc or the tokens changed. Fix the source, then this file.
+// test pass: a difference means the feature doc or the tokens changed. Fix the source, then this file.
 import type { ThemeName } from '../../../../packages/tokens/src/tokens.ts'
 
 type Row = readonly [token: string, onBg: number, onSurface2: number | null, grade: 'AAA' | 'AA']
 
 export const textTable: Record<`${ThemeName}·${'light' | 'dark'}`, readonly Row[]> = {
   default·light: [
-    ['fg', 19.06, 18.1, 'AAA'],
+    ['fg', 16.97, 16.12, 'AAA'],
     ['fg-muted', 7.41, 7.03, 'AAA'],
     ['fg-subtle', 5.05, 4.8, 'AA'],
-    ['accent-2-text', 10.01, 9.5, 'AAA'],
-    ['success', 4.81, 4.56, 'AA'],
+    ['accent-text', 16.97, 16.12, 'AAA'],
+    ['accent-2-text', 6.02, 5.72, 'AA'],
+    ['success', 5.25, 4.99, 'AA'],
     ['warning', 4.81, 4.57, 'AA'],
     ['danger', 6.2, 5.89, 'AA'],
     ['info', 6.42, 6.1, 'AA'],
-    ['accent-fg/accent', 16.97, null, 'AAA']
+    ['accent-fg/accent', 16.97, null, 'AAA'],
+    ['accent-2-fg/accent-2', 6.29, null, 'AA']
   ],
   default·dark: [
-    ['fg', 18.1, 16.12, 'AAA'],
-    ['fg-muted', 7.76, 6.91, 'AA'],
-    ['fg-subtle', 5.81, 5.18, 'AA'],
-    ['accent-2-text', 13.46, 11.99, 'AAA'],
-    ['success', 11.42, 10.17, 'AAA'],
-    ['warning', 11.92, 10.61, 'AAA'],
-    ['danger', 7.19, 6.4, 'AA'],
-    ['info', 7.83, 6.97, 'AA'],
-    ['accent-fg/accent', 19.06, null, 'AAA']
+    ['fg', 15.39, 13.92, 'AAA'],
+    ['fg-muted', 7.62, 6.89, 'AA'],
+    ['fg-subtle', 5.79, 5.23, 'AA'],
+    ['accent-text', 18.7, 16.92, 'AAA'],
+    ['accent-2-text', 6.54, 5.92, 'AA'],
+    ['success', 7.7, 6.96, 'AA'],
+    ['warning', 11.69, 10.58, 'AAA'],
+    ['danger', 7.06, 6.38, 'AA'],
+    ['info', 7.68, 6.95, 'AA'],
+    ['accent-fg/accent', 18.7, null, 'AAA'],
+    ['accent-2-fg/accent-2', 6.54, null, 'AA']
   ],
-  cyberpunk·light: [
-    ['fg', 18.32, 17.18, 'AAA'],
-    ['fg-muted', 8.21, 7.7, 'AAA'],
-    ['fg-subtle', 5.37, 5.04, 'AA'],
-    ['accent-text', 4.99, 4.68, 'AA'],
-    ['accent-2-text', 4.91, 4.6, 'AA'],
-    ['success', 5.05, 4.74, 'AA'],
-    ['warning', 5.03, 4.72, 'AA'],
-    ['danger', 4.95, 4.64, 'AA'],
-    ['info', 6.29, 5.9, 'AA'],
-    ['accent-fg/accent', 15.99, null, 'AAA']
+  contrast·light: [
+    ['fg', 19.9, 19.06, 'AAA'],
+    ['fg-muted', 10.44, 10.01, 'AAA'],
+    ['fg-subtle', 7.73, 7.41, 'AAA'],
+    ['accent-text', 19.9, 19.06, 'AAA'],
+    ['accent-2-text', 9.93, 9.52, 'AAA'],
+    ['success', 7.68, 7.36, 'AAA'],
+    ['warning', 9.07, 8.69, 'AAA'],
+    ['danger', 8.31, 7.96, 'AAA'],
+    ['info', 8.72, 8.36, 'AAA'],
+    ['accent-fg/accent', 19.9, null, 'AAA'],
+    ['accent-2-fg/accent-2', 9.93, null, 'AAA']
   ],
-  cyberpunk·dark: [
-    ['fg', 17.67, 16.43, 'AAA'],
-    ['fg-muted', 9.79, 9.1, 'AAA'],
-    ['fg-subtle', 6.48, 6.03, 'AA'],
-    ['accent-text', 15.99, 14.87, 'AAA'],
-    ['accent-2-text', 6.92, 6.43, 'AA'],
-    ['success', 15.2, 14.14, 'AAA'],
-    ['warning', 18.28, 17.0, 'AAA'],
-    ['danger', 5.58, 5.19, 'AA'],
-    ['info', 6.29, 5.85, 'AA'],
-    ['accent-fg/accent', 15.99, null, 'AAA']
+  contrast·dark: [
+    ['fg', 21, 17.72, 'AAA'],
+    ['fg-muted', 14.21, 11.99, 'AAA'],
+    ['fg-subtle', 10.2, 8.6, 'AAA'],
+    ['accent-text', 21, 17.72, 'AAA'],
+    ['accent-2-text', 10.53, 8.89, 'AAA'],
+    ['success', 13.78, 11.62, 'AAA'],
+    ['warning', 14.56, 12.29, 'AAA'],
+    ['danger', 11.06, 9.33, 'AAA'],
+    ['info', 11.65, 9.82, 'AAA'],
+    ['accent-fg/accent', 21, null, 'AAA'],
+    ['accent-2-fg/accent-2', 10.53, null, 'AAA']
   ]
 }
 
 /** `--ring` on `--bg` (UI, needs 3:1). */
 export const ringOnBg = {
-  default·light: 16.97,
-  default·dark: 15.68,
-  cyberpunk·light: 4.99,
-  cyberpunk·dark: 15.99
+  default·light: 6.02,
+  default·dark: 6.54,
+  contrast·light: 9.93,
+  contrast·dark: 10.53
 } as const
 
 /** `--border-control` on [--bg, --surface, --surface-2] (UI, needs 3:1, WCAG 1.4.11). */
 export const borderControlTable = {
   default·light: [3.28, 3.42, 3.11],
-  default·dark: [3.77, 3.55, 3.36],
-  cyberpunk·light: [5.37, 5.74, 5.04],
-  cyberpunk·dark: [3.52, 3.37, 3.27]
+  default·dark: [3.78, 3.58, 3.42],
+  contrast·light: [10.44, 10.44, 10.01],
+  contrast·dark: [8.19, 7.76, 6.91]
 } as const
 
-/** Service accents: neon on [void, void-850, zinc-950, zinc-850]; deep on [#FAFAFA, #F4F4F5, #F7F7FB, #EEF0F6]. */
+/** Service accents: dark step on [graphite-950, graphite-850, black, zinc-850]; light step on [zinc-50, zinc-100, white]. */
 export const serviceTable = {
-  studio: { neon: [15.99, 14.87, 15.77, 14.04], deep: [5.11, 4.85, 4.99, 4.68] },
-  llm: { neon: [6.92, 6.43, 6.82, 6.07], deep: [5.02, 4.77, 4.91, 4.6] },
-  vision: { neon: [15.2, 14.14, 14.99, 13.35], deep: [5.17, 4.91, 5.05, 4.74] },
-  pulse: { neon: [18.28, 17.0, 18.02, 16.05], deep: [5.15, 4.89, 5.03, 4.72] },
-  identity: { neon: [6.29, 5.85, 6.2, 5.52], deep: [6.44, 6.11, 6.29, 5.9] },
-  widgets: { neon: [7.38, 6.86, 7.28, 6.48], deep: [5.1, 4.84, 4.98, 4.67] }
+  studio: { dark: [6.54, 5.92, 7.04, 5.94], light: [7.57, 7.19, 7.9] },
+  llm: { dark: [7.17, 6.49, 7.72, 6.51], light: [6.81, 6.46, 7.1] },
+  vision: { dark: [7.37, 6.67, 7.93, 6.69], light: [5.78, 5.49, 6.04] },
+  pulse: { dark: [11.69, 10.58, 12.58, 10.61], light: [6.79, 6.45, 7.09] },
+  identity: { dark: [7.68, 6.95, 8.26, 6.97], light: [6.42, 6.1, 6.7] },
+  widgets: { dark: [10.49, 9.49, 11.28, 9.52], light: [5.24, 4.98, 5.47] }
 } as const
 
-/** §3.2 and §6 notes. */
+/** Public presence notes (07c): status pill, accent line and edge glow stops. */
 export const brandNotes = {
-  steelOnPaper: 5.1, // 1 decimal in the doc
-  printCyanOnPaper: 3.24,
-  printMagentaOnPaper: 3.21,
-  neonCyanOnPaper: 1.21,
-  neonMagentaOnPaper: 2.8,
-  accent2FgOnMagenta: 6.92,
-  whiteOnMagenta: 2.92
+  emeraldOnNight: 7.7,
+  emeraldPrintOnPaper: 5.25,
+  indigoOnNight: 4.37,
+  indigoPrintOnPaper: 6.02,
+  edgeLightStopsOnPaper: [3.59, 5.46],
+  edgeDarkStopsOnNight: [7.84, 4.61]
 } as const

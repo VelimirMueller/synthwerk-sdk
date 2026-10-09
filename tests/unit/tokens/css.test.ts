@@ -121,7 +121,7 @@ describe('tokens.css structure', () => {
   it.each(serviceNames)('service %s - rule - sets accent and mode-aware text', (service) => {
     const rule = findRule(`[data-service="${service}"]`)
     expect(rule.decls.get('--service-accent-text')).toBe(`var(--service-${service}-text)`)
-    expect(rule.decls.get('--service-accent')).toMatch(/^var\(--neon-/)
+    expect(rule.decls.get('--service-accent')).toMatch(/^var\(--[a-z]+-400\)$/)
   })
 
   it('reduced motion - media block - sets every duration to 0.01ms', () => {
@@ -133,16 +133,29 @@ describe('tokens.css structure', () => {
     expect(all.decls.get('transition-duration')).toBe('0.01ms !important')
   })
 
-  it('cyberpunk dark selector - no stored mode - matches (dark by default)', () => {
-    // The stored-dark selector excludes only "light" and "system", so a missing data-mode matches.
-    expect(selectors.cyberpunk.dark).not.toContain(':not([data-mode])')
-    expect(selectors.cyberpunk.dark).toContain(':not([data-mode="light"])')
-    expect(selectors.cyberpunk.dark).toContain(':not([data-mode="system"])')
+  it('contrast selectors - nothing stored - follow the OS like default', () => {
+    expect(selectors.contrast.dark).toBe('[data-theme="contrast"][data-mode="dark"]')
+    expect(selectors.contrast.systemDark).toBe('[data-theme="contrast"]:not([data-mode="light"])')
   })
 
-  it('default OS dark selector - stored light - excluded (stored choice wins)', () => {
+  it('OS dark selectors - stored light - excluded (stored choice wins)', () => {
     expect(selectors.default.systemDark).toContain(':not([data-mode="light"])')
-    expect(selectors.cyberpunk.systemDark).toBe('[data-theme="cyberpunk"][data-mode="system"]')
+    expect(selectors.contrast.systemDark).toContain(':not([data-mode="light"])')
+  })
+
+  it('default selectors - contrast on :root - never match', () => {
+    expect(selectors.default.dark).toContain(':root:not([data-theme="contrast"])')
+    expect(selectors.default.systemDark).toContain(':root:not([data-theme="contrast"])')
+  })
+
+  it('texture grid - default theme - draws horizontal and vertical lines', () => {
+    const grid = findRule(selectors.default.light).decls.get('--texture-grid') ?? ''
+    expect(grid).toContain('linear-gradient(90deg,')
+    expect(grid.match(/linear-gradient\(/g)).toHaveLength(2)
+  })
+
+  it('old cyberpunk theme - whole file - gone', () => {
+    expect(css).not.toMatch(/cyberpunk|neon/)
   })
 })
 
@@ -180,8 +193,8 @@ describe('tailwind.css', () => {
     expect(out).toMatch(/\.bg-service\s*\{\s*background-color:\s*var\(--service-accent\)/)
     expect(out).toMatch(/\.rounded-card\s*\{\s*border-radius:\s*1\.5rem/)
     expect(out).toContain('var(--motion-ease-standard)')
-    expect(out).toContain('"Space Grotesk"')
-    expect(out).toContain('letter-spacing: var(--tw-tracking, -0.02em)')
+    expect(out).toContain('"Space Mono"')
+    expect(out).toContain('letter-spacing: var(--tw-tracking, -0.04em)')
     expect(out).toContain('[data-mode="dark"]')
     expect(out).toContain('prefers-color-scheme: dark')
   })
@@ -205,8 +218,8 @@ describe('tokens.json', () => {
     }
   })
 
-  it('defaultMode - cyberpunk dark, default system - as the brand doc decides', () => {
-    expect(json.defaultMode).toEqual({ default: 'system', cyberpunk: 'dark' })
+  it('defaultMode - both themes - follow the system', () => {
+    expect(json.defaultMode).toEqual({ default: 'system', contrast: 'system' })
   })
 })
 
