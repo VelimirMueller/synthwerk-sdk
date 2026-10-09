@@ -6,6 +6,11 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Thi
 
 ## [Unreleased]
 
+### Added
+
+- **Group accents (VM. studio).** `data-group="flagship|vlm|rig"` switches `--accent-2`, `--accent-2-fg`, `--accent-2-text`, `--ring` and the new `--group-fill`. Missing = `flagship`, so the look does not change for current pages. New exports: `groups`, `groupNames`, `groupColorNames`, `defaultGroup`, `resolveRefs`; `resolveColors` takes an optional group. Tailwind gets `color-group`.
+- Primitives `violet-300`, `violet-800`, `amber-500`.
+
 ### Changed
 
 - `@synthwerk/tokens` 0.2.0: the public look (D-41). See `docs/ecosystem-plan/07c-public-presence.md`.

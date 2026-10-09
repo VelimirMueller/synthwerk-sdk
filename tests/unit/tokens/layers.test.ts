@@ -3,7 +3,10 @@ import { renderTokensCss, selectors } from '../../../packages/tokens/src/css.ts'
 import {
   brand,
   components,
+  defaultGroup,
   gradients,
+  groupNames,
+  groups,
   modes,
   primitives,
   semanticColorNames,
@@ -73,5 +76,36 @@ describe('token layers', () => {
     const firstThemeRule = css.indexOf(`${selectors.default.light} {`)
     expect(firstThemeRule).toBeGreaterThan(0)
     expect(css.slice(firstThemeRule)).not.toMatch(HEX)
+  })
+})
+
+describe('group layer', () => {
+  it('default group - every theme × mode - equals the theme colours (no visual change)', () => {
+    for (const theme of themeNames) {
+      for (const mode of modes) {
+        const g = groups[defaultGroup].themes[theme][mode]
+        const t = themes[theme][mode].colors
+        expect([t['accent-2'], t['accent-2-text'], t.ring, t['accent-2-fg']]).toEqual([
+          g.accent,
+          g.accent,
+          g.accent,
+          g.fg
+        ])
+      }
+    }
+  })
+
+  it('groups - every value - references an existing primitive, never emerald', () => {
+    for (const group of groupNames) {
+      const g = groups[group]
+      const refs = [
+        g.fill,
+        ...themeNames.flatMap((t) =>
+          modes.flatMap((m) => [g.themes[t][m].accent, g.themes[t][m].fg])
+        )
+      ]
+      for (const ref of refs) expect(primitiveNames.has(ref)).toBe(true)
+      expect(refs.some((r) => r.startsWith('emerald'))).toBe(false)
+    }
   })
 })

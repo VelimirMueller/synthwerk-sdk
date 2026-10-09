@@ -5,6 +5,7 @@ export {
   renderTokensCss,
   renderTokensJson,
   resolveColors,
+  resolveRefs,
   selectors
 } from './css.ts'
 export * from './theme.ts'

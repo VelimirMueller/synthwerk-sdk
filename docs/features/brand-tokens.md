@@ -27,6 +27,7 @@ updated: 2026-10-09
 - `tokens.css` sets CSS custom properties on `:root` and on every `[data-theme]` element.
 - `tailwind.css` maps the variables to Tailwind 4 utilities with `@theme inline`.
 - `tokens.json` gives the resolved hex values for charts and canvas code.
+- `[data-group="flagship|vlm|rig"]` sets the VM. studio group accent: `--accent-2`, `--accent-2-fg`, `--accent-2-text`, `--ring` and the graphic `--group-fill`. Missing = `flagship` (indigo, unchanged look).
 - `[data-service="<name>"]` sets `--service-accent` and `--service-accent-text`. Nothing else changes per service.
 - `prefers-reduced-motion: reduce` sets every duration to `0.01ms`.
 - `assets/` holds the `SYNTHWERK.` logo, wordmark and the `S.` mark in light and dark, plus a favicon. The wordmark text is outlined in Space Mono Bold.
@@ -63,12 +64,14 @@ updated: 2026-10-09
 | Rule | Value |
 |---|---|
 | Theme switch | `data-theme="default \| contrast"` on `<html>`. Missing = `default`. |
+| Group switch | `data-group="flagship \| vlm \| rig"` on `<html>` or any element. Missing = `flagship`. Set once per site, not stored. |
 | Mode switch | `data-mode="light \| dark \| system"` on `<html>`. Missing = nothing stored. |
 | Nothing stored | Both themes follow the OS (`prefers-color-scheme`). |
 | Stored choice | Always wins over the OS. |
 | Body text contrast | ≥ 4.5:1 on `--bg`, `--surface` and `--surface-2` |
 | UI contrast (`--ring`, `--border-control`, print signal on paper) | ≥ 3:1 on `--bg`, `--surface` and `--surface-2` |
 | Control boundary (input, select, checkbox, secondary button) | `--border-control` (WCAG 1.4.11). `--border` is for decorative dividers only. |
+| Group accents | Flagship indigo, vlm violet, rig amber (vm-brand playbook B-18 … B-21). Text meets AA in `default` and AAA in `contrast`. Emerald stays status; rig amber never goes on status chips. |
 | Service badge | Text `--service-accent-text`. Fill tint 8 % in light modes, 14 % in dark modes. Text ≥ 4.5:1 on the fill. |
 | `tokens.css` size | ≤ 8 KB gzip |
 | Fonts | Space Mono, Inter, JetBrains Mono. SIL OFL 1.1. Self-hosted. Not bundled. |
