@@ -1,0 +1,17 @@
+{
+  "divider-what-v2.svg": "01 WHAT IT DOES. DESIGN TOKENS. THE SDK FOLLOWS.",
+  "divider-start-v2.svg": "02 QUICK START. COPY. PASTE. DONE.",
+  "divider-how-v2.svg": "03 HOW IT WORKS. ONE SOURCE. THREE OUTPUTS.",
+  "divider-usage-v2.svg": "04 USAGE. THE REFERENCE. CONDENSED.",
+  "divider-status-v2.svg": "05 STATUS. HONEST NUMBERS ONLY.",
+  "stats-v2-dark.svg": "1 PACKAGE WORKS. 6 PACKAGES PLANNED. 5 EXPORT PATHS. 3 COLOR MODES",
+  "stats-v2-light.svg": "1 PACKAGE WORKS. 6 PACKAGES PLANNED. 5 EXPORT PATHS. 3 COLOR MODES",
+  "features-v2-dark.svg": "TOKENS: The public look (D-41) as CSS variables, a Tailwind 4 theme, JSON and typed exports. v0.2.0. SDK: Core client generated from synthwerk-contracts. Auth modes, query keys. Not built yet. ADAPTERS: Vue 3.5 and React adapters plus pattern libraries. Planned",
+  "features-v2-light.svg": "TOKENS: The public look (D-41) as CSS variables, a Tailwind 4 theme, JSON and typed exports. v0.2.0. SDK: Core client generated from synthwerk-contracts. Auth modes, query keys. Not built yet. ADAPTERS: Vue 3.5 and React adapters plus pattern libraries. Planned",
+  "start-v2-dark.svg": "Terminal: $ corepack enable | $ pnpm install | $ pnpm check | # biome ci, tsc --noEmit, vitest run, build",
+  "start-v2-light.svg": "Terminal: $ corepack enable | $ pnpm install | $ pnpm check | # biome ci, tsc --noEmit, vitest run, build",
+  "flow-v2-dark.svg": "tokens.ts -> OUTPUTS -> APPS. themes default + contrast. modes light, dark, system.",
+  "flow-v2-light.svg": "tokens.ts -> OUTPUTS -> APPS. themes default + contrast. modes light, dark, system.",
+  "status-v2-dark.svg": "@synthwerk/tokens: 0.2.0. tokens.css / tailwind.css / tokens.json: working. @synthwerk/sdk: not built. vue / react adapters: planned. npm publish: waiting on npm org",
+  "status-v2-light.svg": "@synthwerk/tokens: 0.2.0. tokens.css / tailwind.css / tokens.json: working. @synthwerk/sdk: not built. vue / react adapters: planned. npm publish: waiting on npm org"
+}

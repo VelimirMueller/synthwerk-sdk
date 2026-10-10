@@ -1,57 +1,67 @@
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="assets/banner/banner-v1-dark.svg">
-  <img alt="SYNTHWERK / SDK. npm packages for Synthwerk apps. In development, tokens 0.2.0." src="assets/banner/banner-v1-light.svg" width="100%">
+  <source media="(prefers-color-scheme: light)" srcset="assets/banner/hero-v2-light.svg">
+  <img alt="SYNTHWERK-SDK. Design tokens now. Client and bindings next. npm packages for Synthwerk apps. Working." src="assets/banner/hero-v2-dark.svg" width="100%">
 </picture>
 
 <p align="center">
-  <img alt="status: in development" src="https://img.shields.io/badge/status-in_development-10b981?style=for-the-badge&labelColor=18181b">
-  <img alt="tokens 0.2.0" src="https://img.shields.io/badge/tokens-0.2.0-27272a?style=for-the-badge&labelColor=18181b">
-  <a href="LICENSE"><img alt="license: MIT" src="https://img.shields.io/badge/license-MIT-27272a?style=for-the-badge&labelColor=18181b"></a>
+
+[![status: working](https://img.shields.io/badge/status-working-10b981?style=flat-square&labelColor=0a0a0b)](#-05-status) [![VM. flagship](https://img.shields.io/badge/VM.-flagship-6366f1?style=flat-square&labelColor=0a0a0b)](https://github.com/VelimirMueller) [![tokens 0.2.0](https://img.shields.io/badge/tokens-0.2.0-a1a1aa?style=flat-square&labelColor=0a0a0b)](packages/tokens) [![typescript](https://img.shields.io/badge/typescript-a1a1aa?style=flat-square&labelColor=0a0a0b)](#-04-usage)
+
 </p>
 
-**synthwerk-sdk** holds the `@synthwerk/*` npm packages. Studio, widgets and SDK apps import them.
+> Design tokens now. Client and bindings next.
 
 ```text
-[ STATUS ]  in development, M0
-[ WORKS  ]  @synthwerk/tokens 0.2.0
-[ NEXT   ]  @synthwerk/sdk from contracts
+ █████  ██  ██  ██  ██  ██████  ██  ██  ██   ██  ██████  █████   ██  ██
+██      ██  ██  ███ ██    ██    ██  ██  ██   ██  ██      ██  ██  ██ ██
+ ████    ████   ██████    ██    ██████  ██ █ ██  █████   █████   ████    █████
+    ██    ██    ██ ███    ██    ██  ██  ███████  ██      ██ ██   ██ ██
+█████     ██    ██  ██    ██    ██  ██   ██ ██   ██████  ██  ██  ██  ██
+ █████  █████   ██  ██
+██      ██  ██  ██ ██
+ ████   ██  ██  ████
+    ██  ██  ██  ██ ██
+█████   █████   ██  ██  ██
+
+ ------  npm packages for synthwerk apps  -----------------------
 ```
 
-## In 30 seconds
+**synthwerk-sdk** holds the `@synthwerk/*` npm packages. Studio, widgets and SDK apps import them.
+The first package is the design tokens. The rest is a plan. The plan is detailed.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/readme/stats-v2-dark.svg">
+  <img alt="1 PACKAGE WORKS. 6 PACKAGES PLANNED. 5 EXPORT PATHS. 3 COLOR MODES" src="assets/readme/stats-v2-light.svg" width="100%">
+</picture>
+
+<br>
+
+## // 01 WHAT IT DOES
+
+<img alt="01 WHAT IT DOES. DESIGN TOKENS. THE SDK FOLLOWS." src="assets/readme/divider-what-v2.svg" width="100%">
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/readme/features-v2-dark.svg">
+  <img alt="TOKENS: The public look (D-41) as CSS variables, a Tailwind 4 theme, JSON and typed exports. v0.2.0. SDK: Core client generated from synthwerk-contracts. Auth modes, query keys. Not built yet. ADAPTERS: Vue 3.5 and React adapters plus pattern libraries. Planned" src="assets/readme/features-v2-light.svg" width="100%">
+</picture>
 
 - One pnpm workspace for the `@synthwerk/*` packages: SDK, framework adapters and design packages.
-- The first package is `@synthwerk/tokens`: the public look (D-41) as CSS variables, a Tailwind 4 theme, JSON and typed exports.
+- `@synthwerk/tokens` is the public look (D-41) as CSS variables, a Tailwind 4 theme, JSON and typed exports.
 - Run `pnpm install && pnpm check`. The repo calls no service at build time.
-- Status: tokens work. The SDK, the adapters and the UI packages do not exist yet. Nothing is on npm yet.
+- Tokens work. The SDK, the adapters and the UI packages do not exist yet. Nothing is on npm yet.
 
-## How it works
+<br>
 
-```text
--- 02 ---------------------------------------------------- HOW IT WORKS --
+## // 02 QUICK START
 
-  src/tokens.ts  (one source: primitive > semantic > component > service)
-        |
-        v
-  +----------------+   +------------------+   +--------------+
-  |   tokens.css   |   |   tailwind.css   |   |  tokens.json |
-  |  CSS variables |   |  Tailwind 4 map  |   |  hex values  |
-  +-------+--------+   +--------+---------+   +------+-------+
-          |                     |                    |
-          +=========+===========+==========+=========+
-                    |                      |
-               +----v-----+          +-----v------+     +-----------+
-               |  studio  |          |  widgets   |     | SDK apps  |
-               +----------+          +------------+     +-----------+
+<img alt="02 QUICK START. COPY. PASTE. DONE." src="assets/readme/divider-start-v2.svg" width="100%">
 
-  themes   default (website + dashboard look) . contrast (AAA)
-  modes    light . dark . system (default: follow the OS)
-```
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/readme/start-v2-dark.svg">
+  <img alt="Terminal: $ corepack enable | $ pnpm install | $ pnpm check | # biome ci, tsc --noEmit, vitest run, build" src="assets/readme/start-v2-light.svg" width="100%">
+</picture>
 
-- Ecosystem map: [synthwerk](https://github.com/VelimirMueller/synthwerk).
-
-## Quick start
-
-```sh
+```bash
 corepack enable
 pnpm install
 pnpm check      # biome ci, tsc --noEmit, vitest run, build
@@ -59,108 +69,102 @@ pnpm --filter @synthwerk/tokens demo         # demo page on http://127.0.0.1:417
 pnpm --filter @synthwerk/tokens screenshots  # theme checks in Chromium + PNGs in ./screenshots
 ```
 
+In an app, import the CSS after Tailwind:
+
 ```css
 @import "tailwindcss";
 @import "@synthwerk/tokens/tokens.css";
 @import "@synthwerk/tokens/tailwind.css";
 ```
 
-## Configuration
+<br>
 
-| Variable | Required | Use |
-|---|---|---|
-| None. | | |
+## // 03 HOW IT WORKS
 
-## API and events
+<img alt="03 HOW IT WORKS. ONE SOURCE. THREE OUTPUTS." src="assets/readme/divider-how-v2.svg" width="100%">
 
-- No HTTP API and no events. The repo ships npm packages. Service APIs live in [synthwerk-contracts](https://github.com/VelimirMueller/synthwerk-contracts).
-
-| Package | Exports | Status |
-|---|---|---|
-| [`@synthwerk/tokens`](packages/tokens) | `.` (typed data, `resolveMode`, `contrastRatio`, `firstPaintScript`), `./tokens.css`, `./tailwind.css`, `./tokens.json`, `./assets/*` | 0.2.0, not published |
-
-## Development
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/readme/flow-v2-dark.svg">
+  <img alt="tokens.ts -> OUTPUTS -> APPS. themes default + contrast. modes light, dark, system." src="assets/readme/flow-v2-light.svg" width="100%">
+</picture>
 
 ```text
-packages/tokens/
-  src/        tokens.ts (single source), css.ts (renderers), theme.ts, contrast.ts
-  scripts/    build.ts, fonts.ts, outline-wordmark.ts, serve.ts, screenshots.ts
-  assets/     SYNTHWERK. logo, wordmark, S. mark (light + dark), favicon
-  demo/       static demo page with a theme and mode switch
-tests/unit/tokens/   contrast, CSS structure, token layers, theme rules, assets
-tools/biome-config/  vendored copy of @synthwerk/biome-config (see its README)
-assets/banner/       README banner (synthwerk/scripts/make-banner.py)
+  src/tokens.ts   one source: primitive > semantic > component > service
+      |
+      v
+  +------------+      +--------------+      +-------------+
+  | tokens.css |      | tailwind.css |      | tokens.json |
+  | CSS vars   |      | Tailwind map |      | hex values  |
+  +-----+------+      +------+-------+      +------+------+
+        |                    |                     |
+        +========+===========+===========+=========+
+                         |
+                   studio · widgets · SDK apps
+
+  themes   default (website + dashboard look) · contrast (AAA)
+  modes    light · dark · system (default: follow the OS)
 ```
 
-| Level | Folder | Command |
-|---|---|---|
-| unit | `tests/unit/` | `pnpm test` |
+- Ecosystem map: [synthwerk](https://github.com/VelimirMueller/synthwerk).
+
+<br>
+
+## // 04 USAGE
+
+<img alt="04 USAGE. THE REFERENCE. CONDENSED." src="assets/readme/divider-usage-v2.svg" width="100%">
+
+### Packages
+
+- [`@synthwerk/tokens`](packages/tokens): exports `.` (typed data, `resolveMode`, `contrastRatio`, `firstPaintScript`), `./tokens.css`, `./tailwind.css`, `./tokens.json`, `./assets/*`. 0.2.0, not published.
+
+### Configuration
+
+- None. The repo ships npm packages, not a running service.
+
+### API and events
+
+- No HTTP API and no events. Service APIs live in [synthwerk-contracts](https://github.com/VelimirMueller/synthwerk-contracts).
+
+### Development
 
 - Lint and format: Biome 2.5 (D-06). Run `pnpm format` before a commit.
 - TypeScript 6.0.3 for now. The SDK core moves to TS 7 when it starts.
 - Node 24 runs the `.ts` scripts directly (type stripping). No `tsx` needed.
+- Unit tests live in `tests/unit/`. Run `pnpm test`.
+- Blueprint: [synthwerk-blueprint](https://github.com/VelimirMueller/synthwerk-blueprint).
+- The full layout, fonts, logo and roadmap are in [docs/REFERENCE.md](docs/REFERENCE.md).
 
-### Fonts (self-host, SIL OFL 1.1)
+<br>
 
-| Token | Font | Use |
-|---|---|---|
-| `--font-display` | Space Mono 400, 700 | Headlines, wordmark, labels, pills |
-| `--font-sans` | Inter 400, 600 | Body text and controls |
-| `--font-mono` | JetBrains Mono 400, 700 | Code, logs, diffs |
+## // 05 STATUS
 
-- The package does not bundle font files. Apps self-host them (no Google Fonts at runtime: GDPR, CSP).
-- `pnpm --filter @synthwerk/tokens fonts` fetches the pinned files from google/fonts (commit + SHA-256) into `.cache/` (git-ignored). The demo uses them.
-- Subset to Latin + Latin-1 Supplement and convert to `woff2` (for example `pyftsubset --flavor=woff2 --unicodes=U+0000-00FF`).
-- Ship each font's `OFL.txt` next to its `woff2` files. Declare `@font-face` with `font-display: swap`.
+<img alt="05 STATUS. HONEST NUMBERS ONLY." src="assets/readme/divider-status-v2.svg" width="100%">
 
-### Logo
-
-- `pnpm --filter @synthwerk/tokens wordmark` outlines `SYNTHWERK.` and the `S.` mark in Space Mono Bold.
-- Only outlined paths go into `assets/`. No font binary is committed.
-- The README banner comes from the overview repo: `python3 scripts/make-banner.py --repo sdk --version v1 --out <this repo>/assets`.
-
-## Roadmap
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/readme/status-v2-dark.svg">
+  <img alt="@synthwerk/tokens: 0.2.0. tokens.css / tailwind.css / tokens.json: working. @synthwerk/sdk: not built. vue / react adapters: planned. npm publish: waiting on npm org" src="assets/readme/status-v2-light.svg" width="100%">
+</picture>
 
 ```text
--- 06 --------------------------------------------------------- ROADMAP --
-
-  tokens 0.1  -->  tokens 0.2  -->  sdk core  -->  vue  -->  react
-  (neon v1)       (public look)     (E2)         (E2)      (E7)
-                       ^
-                      now
+[ STATUS ]  in development, M0
+[ WORKS  ]  @synthwerk/tokens 0.2.0
+[ NEXT   ]  @synthwerk/sdk from contracts
 ```
 
-| Package | Epic | Content |
-|---|---|---|
-| `@synthwerk/tokens` | E0/E1 | 0.2.0: public look (D-41). Next: `patterns.css`, `oklch()` output. |
-| `@synthwerk/sdk` | E2 | Core client generated from synthwerk-contracts, auth modes, query keys. |
-| `@synthwerk/vue` | E2 | Vue 3.5 adapter. |
-| `@synthwerk/ui-vue` | E1/E4 | UX pattern library (Vue). |
-| `@synthwerk/react`, `@synthwerk/ui-react` | E7 | React adapter and patterns. |
-| `create-synthwerk-app` | E7 | App scaffolder (React default, Vue option). |
+Run the whole check:
 
-## Docs
+```bash
+pnpm check   # biome ci, tsc --noEmit, vitest run, build
+```
 
-- Feature docs: [Brand tokens](docs/features/brand-tokens.md) (beta).
-- Changes: [CHANGELOG.md](CHANGELOG.md).
-- Blueprint: [synthwerk-blueprint](https://github.com/VelimirMueller/synthwerk-blueprint). Overview: [synthwerk](https://github.com/VelimirMueller/synthwerk).
-- Deploy: no deploy. Packages go to npmjs.com under `@synthwerk` with changesets and provenance (D-24), after the npm org exists.
-- Security: report a vulnerability through GitHub private vulnerability reporting on this repo.
+- Feature doc: [Brand tokens](docs/features/brand-tokens.md) (beta). Changes: [CHANGELOG.md](CHANGELOG.md).
 
-## Features
-
-<!-- One row per docs/features/*.md. /feature-doc keeps this table current. -->
-
-| Feature | Status |
-|---|---|
-| [Brand tokens](docs/features/brand-tokens.md) | beta |
+<br>
 
 ```text
- █████  █████   ██  ██
-██      ██  ██  ██ ██
- ████   ██  ██  ████
-    ██  ██  ██  ██ ██
-█████   █████   ██  ██  ██
+-- EOF ------------------------------------------ TOKENS ARE NOT VIBES --
 ```
 
-[MIT](LICENSE) © 2026 Velimir Mueller
+---
+
+<sub>VM. studio / flagship · open source · look per <code>vm-brand</code> playbook · [MIT](LICENSE) © 2026 Velimir Mueller</sub>
