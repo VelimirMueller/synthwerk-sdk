@@ -1,0 +1,107 @@
+{
+  "group": "flagship",
+  "version": "v2",
+  "dividers": [
+    {
+      "key": "what",
+      "index": "01",
+      "title": "WHAT IT DOES",
+      "caption": "DESIGN TOKENS. THE SDK FOLLOWS.",
+      "art": "strip-flagship-1"
+    },
+    {
+      "key": "start",
+      "index": "02",
+      "title": "QUICK START",
+      "caption": "COPY. PASTE. DONE.",
+      "art": "strip-flagship-2"
+    },
+    {
+      "key": "how",
+      "index": "03",
+      "title": "HOW IT WORKS",
+      "caption": "ONE SOURCE. THREE OUTPUTS.",
+      "art": "strip-flagship-3"
+    },
+    {
+      "key": "usage",
+      "index": "04",
+      "title": "USAGE",
+      "caption": "THE REFERENCE. CONDENSED.",
+      "art": "strip-flagship-4"
+    },
+    {
+      "key": "status",
+      "index": "05",
+      "title": "STATUS",
+      "caption": "HONEST NUMBERS ONLY.",
+      "art": "strip-flagship-5"
+    }
+  ],
+  "panels": [
+    {
+      "key": "stats",
+      "type": "stats",
+      "title": "SYNTHWERK-SDK IN NUMBERS",
+      "items": [
+        { "value": "1", "label": "PACKAGE WORKS" },
+        { "value": "6", "label": "PACKAGES PLANNED" },
+        { "value": "5", "label": "EXPORT PATHS" },
+        { "value": "3", "label": "COLOR MODES" }
+      ]
+    },
+    {
+      "key": "features",
+      "type": "cards",
+      "title": "ONE SOURCE, MANY PACKAGES",
+      "items": [
+        {
+          "title": "TOKENS",
+          "text": "The public look (D-41) as CSS variables, a Tailwind 4 theme, JSON and typed exports. v0.2.0."
+        },
+        {
+          "title": "SDK",
+          "text": "Core client generated from synthwerk-contracts. Auth modes, query keys. Not built yet."
+        },
+        {
+          "title": "ADAPTERS",
+          "text": "Vue 3.5 and React adapters plus pattern libraries. Planned."
+        }
+      ]
+    },
+    {
+      "key": "start",
+      "type": "terminal",
+      "title": "QUICK START",
+      "lines": [
+        "$ corepack enable",
+        "$ pnpm install",
+        "$ pnpm check",
+        "# biome ci, tsc --noEmit, vitest run, build"
+      ]
+    },
+    {
+      "key": "flow",
+      "type": "flow",
+      "title": "ONE SOURCE, THREE OUTPUTS",
+      "nodes": [
+        { "title": "tokens.ts", "sub": "one source, four layers" },
+        { "title": "OUTPUTS", "sub": "tokens.css, tailwind.css, tokens.json", "hot": true },
+        { "title": "APPS", "sub": "studio, widgets, SDK apps" }
+      ],
+      "caption": "themes default + contrast. modes light, dark, system."
+    },
+    {
+      "key": "status",
+      "type": "status",
+      "title": "WHAT WORKS TODAY",
+      "rows": [
+        { "label": "@synthwerk/tokens", "value": "0.2.0", "state": "ok" },
+        { "label": "tokens.css / tailwind.css / tokens.json", "value": "working", "state": "ok" },
+        { "label": "@synthwerk/sdk", "value": "not built", "state": "planned" },
+        { "label": "vue / react adapters", "value": "planned", "state": "planned" },
+        { "label": "npm publish", "value": "waiting on npm org", "state": "off" }
+      ]
+    }
+  ]
+}
