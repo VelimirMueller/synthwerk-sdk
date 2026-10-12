@@ -1,4 +1,7 @@
-import { defineComponent, h, type PropType, ref } from 'vue'
+import { defineComponent, h, onBeforeUnmount, type PropType, ref, watch } from 'vue'
+
+/** How long the copy button says "Copied". */
+export const COPIED_MS = 2000
 
 export const terminalTones = ['default', 'muted', 'success', 'danger'] as const
 export type TerminalTone = (typeof terminalTones)[number]
@@ -22,12 +25,26 @@ export interface TerminalSnippetProps {
 export const SwTerminalSnippet = defineComponent(
   (props: TerminalSnippetProps, { emit }) => {
     const copied = ref(false)
+    let timer: ReturnType<typeof setTimeout> | undefined
+    const reset = () => {
+      clearTimeout(timer)
+      copied.value = false
+    }
+    watch(() => props.command, reset)
+    onBeforeUnmount(reset)
     const copy = async () => {
       const clipboard = globalThis.navigator?.clipboard
       const command = props.command ?? ''
       if (props.disabled || !clipboard) return
-      await clipboard.writeText(command)
+      try {
+        await clipboard.writeText(command)
+      } catch {
+        // Denied (no secure context or no permission): keep the "Copy" label, emit nothing.
+        return
+      }
+      reset()
       copied.value = true
+      timer = setTimeout(reset, COPIED_MS)
       emit('copy', command)
     }
     return () => {
@@ -37,17 +54,19 @@ export const SwTerminalSnippet = defineComponent(
         return h('div', { class: ['sw-terminal', 'sw-terminal--command', state] }, [
           h('span', { class: 'sw-terminal__prompt', 'aria-hidden': 'true' }, '$'),
           h('code', { class: 'sw-terminal__command' }, props.command),
-          h(
-            'button',
-            {
-              class: 'sw-terminal__copy',
-              type: 'button',
-              disabled: props.disabled,
-              'aria-label': copied.value ? 'Command copied' : 'Copy command',
-              onClick: copy
-            },
-            copied.value ? 'Copied' : 'Copy'
-          )
+          props.command
+            ? h(
+                'button',
+                {
+                  class: 'sw-terminal__copy',
+                  type: 'button',
+                  disabled: props.disabled,
+                  'aria-label': copied.value ? 'Command copied' : 'Copy command',
+                  onClick: copy
+                },
+                copied.value ? 'Copied' : 'Copy'
+              )
+            : null
         ])
       }
       return h('div', { class: ['sw-terminal', 'sw-terminal--session', state] }, [

@@ -1,9 +1,10 @@
 // @vitest-environment happy-dom
-import { mount } from '@vue/test-utils'
+import { flushPromises, mount } from '@vue/test-utils'
 import { describe, expect, it, vi } from 'vitest'
-import { h } from 'vue'
+import { h, nextTick } from 'vue'
 import {
   buttonKinds,
+  COPIED_MS,
   dividerKinds,
   pillKinds,
   SwButton,
@@ -175,7 +176,7 @@ describe('SwTerminalSnippet', () => {
     const w = mount(SwTerminalSnippet, { props: { command: 'npm i @synthwerk/tokens' } })
     expect(w.find('.sw-terminal__command').text()).toBe('npm i @synthwerk/tokens')
     await w.find('.sw-terminal__copy').trigger('click')
-    await Promise.resolve()
+    await flushPromises()
     expect(writeText).toHaveBeenCalledWith('npm i @synthwerk/tokens')
     expect(w.emitted('copy')?.[0]).toEqual(['npm i @synthwerk/tokens'])
     expect(w.find('.sw-terminal__copy').text()).toBe('Copied')
@@ -191,6 +192,36 @@ describe('SwTerminalSnippet', () => {
     expect(writeText).not.toHaveBeenCalled()
     expect(w.emitted('copy')).toBeUndefined()
     vi.unstubAllGlobals()
+  })
+
+  it('copied - after COPIED_MS - label returns to Copy', async () => {
+    vi.useFakeTimers()
+    vi.stubGlobal('navigator', { clipboard: { writeText: vi.fn().mockResolvedValue(undefined) } })
+    const w = mount(SwTerminalSnippet, { props: { command: 'ls' } })
+    await w.find('.sw-terminal__copy').trigger('click')
+    await flushPromises()
+    expect(w.find('.sw-terminal__copy').text()).toBe('Copied')
+    vi.advanceTimersByTime(COPIED_MS)
+    await nextTick()
+    expect(w.find('.sw-terminal__copy').text()).toBe('Copy')
+    vi.useRealTimers()
+    vi.unstubAllGlobals()
+  })
+
+  it('clipboard denied - copy - no event and no rejection', async () => {
+    vi.stubGlobal('navigator', {
+      clipboard: { writeText: vi.fn().mockRejectedValue(new Error('denied')) }
+    })
+    const w = mount(SwTerminalSnippet, { props: { command: 'ls' } })
+    await w.find('.sw-terminal__copy').trigger('click')
+    await flushPromises()
+    expect(w.emitted('copy')).toBeUndefined()
+    expect(w.find('.sw-terminal__copy').text()).toBe('Copy')
+    vi.unstubAllGlobals()
+  })
+
+  it('empty command - render - no copy button', () => {
+    expect(mount(SwTerminalSnippet).find('.sw-terminal__copy').exists()).toBe(false)
   })
 
   it('no clipboard - copy - no event', async () => {

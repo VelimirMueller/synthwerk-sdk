@@ -1,8 +1,11 @@
-import { defineComponent, h } from 'vue'
+import { defineComponent, h, type PropType } from 'vue'
+
+export const inputTypes = ['text', 'email', 'password', 'search', 'tel', 'url'] as const
+export type InputType = (typeof inputTypes)[number]
 
 export interface InputProps {
   modelValue?: string
-  type?: string
+  type?: InputType
   invalid?: boolean
   disabled?: boolean
 }
@@ -24,7 +27,7 @@ export const SwInput = defineComponent(
     name: 'SwInput',
     props: {
       modelValue: { type: String, default: '' },
-      type: { type: String, default: 'text' },
+      type: { type: String as PropType<InputType>, default: 'text' },
       invalid: { type: Boolean, default: false },
       disabled: { type: Boolean, default: false }
     },
