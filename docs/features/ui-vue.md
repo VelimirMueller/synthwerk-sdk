@@ -63,6 +63,8 @@ updated: 2026-10-13
 | Text contrast | ≥ 4.5:1 for every text of every component, both themes, both modes, all groups. |
 | Disabled | 40 % opacity. WCAG 1.4.3 does not apply to inactive controls. |
 | Status and accent tints | 5 % fill. Figma uses 10 % and 14 %; these fail 4.5:1 in light mode. |
+| Link targets | `safeHref()` checks every URL prop. Allowed: relative, `#…`, `http:`, `https:`, `mailto:`, `tel:`. Other schemes give no link: `SwCard` renders an `article`. |
+| Raw HTML | No component sets `innerHTML`. Props render as text. |
 | Emerald | Status `live` only. |
 | Vue | `^3.5.0` (peer). |
 
@@ -84,6 +86,7 @@ updated: 2026-10-13
 - `tests/unit/ui-vue/css.test.ts` — `ui.css rule - value - tokens only`
 - `tests/unit/ui-vue/css.test.ts` — `component text on bg and surface - theme × mode × group - at least 4.5:1`
 - `tests/unit/ui-vue/css.test.ts` — `component root - focus-visible - focus token outline`
+- `tests/unit/ui-vue/url.test.ts` — `safeHref and SwCard - javascript:, data:, vbscript: and bypasses - no link`
 
 ## Changes
 

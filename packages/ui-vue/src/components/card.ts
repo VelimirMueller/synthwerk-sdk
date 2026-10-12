@@ -1,4 +1,5 @@
 import { defineComponent, h } from 'vue'
+import { safeHref } from '../url.ts'
 
 export interface CardProps {
   eyebrow?: string
@@ -10,6 +11,8 @@ export interface CardProps {
 /**
  * Content card. Slots: `default` (body) and `footer`. With `href` the whole card is a link.
  * A disabled link card loses `href`, so it leaves the tab order.
+ * `href` goes through `safeHref()`: an unsafe URL (`javascript:`, `data:` …) renders a plain
+ * article, never a link.
  */
 export const SwCard = defineComponent(
   (props: CardProps, { slots }) =>
@@ -20,11 +23,12 @@ export const SwCard = defineComponent(
         slots.default ? h('div', { class: 'sw-card__body' }, slots.default()) : null,
         slots.footer ? h('div', { class: 'sw-card__footer' }, slots.footer()) : null
       ]
+      const href = safeHref(props.href)
       return h(
-        props.href ? 'a' : 'article',
+        href ? 'a' : 'article',
         {
           class: ['sw-card', { 'sw-is-disabled': props.disabled }],
-          href: props.href && !props.disabled ? props.href : undefined,
+          href: href && !props.disabled ? href : undefined,
           'aria-disabled': props.disabled ? 'true' : undefined
         },
         children
