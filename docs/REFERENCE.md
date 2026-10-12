@@ -33,7 +33,11 @@ packages/tokens/
   scripts/    build.ts, fonts.ts, outline-wordmark.ts, serve.ts, screenshots.ts
   assets/     SYNTHWERK. logo, wordmark, S. mark (light + dark), favicon
   demo/       static demo page with a theme and mode switch
+packages/ui-vue/
+  src/        components/*.ts (render functions), ui.css (tokens only), index.ts
+  scripts/    build.ts (copies ui.css to dist)
 tests/unit/tokens/   contrast, CSS structure, token layers, theme rules, assets
+tests/unit/ui-vue/   components, tokens-only CSS, text contrast per theme, mode and group
 tools/biome-config/  vendored copy of @synthwerk/biome-config (see its README)
 assets/banner/       README banner (synthwerk/scripts/make-banner.py)
 ```
@@ -72,7 +76,7 @@ assets/banner/       README banner (synthwerk/scripts/make-banner.py)
 | `@synthwerk/tokens` | E0/E1 | 0.2.0: public look (D-41). Next: `patterns.css`, `oklch()` output. |
 | `@synthwerk/sdk` | E2 | Core client generated from synthwerk-contracts, auth modes, query keys. |
 | `@synthwerk/vue` | E2 | Vue 3.5 adapter. |
-| `@synthwerk/ui-vue` | E1/E4 | UX pattern library (Vue). |
+| `@synthwerk/ui-vue` | E1/E4 | `synthwerk-ui` for Vue. 0.1.0: first seven components. Next: patterns. |
 | `@synthwerk/react`, `@synthwerk/ui-react` | E7 | React adapter and patterns. |
 | `create-synthwerk-app` | E7 | App scaffolder (React default, Vue option). |
 
