@@ -1,0 +1,42 @@
+import { defineComponent, h } from 'vue'
+
+export interface CardProps {
+  eyebrow?: string
+  title?: string
+  href?: string
+  disabled?: boolean
+}
+
+/**
+ * Content card. Slots: `default` (body) and `footer`. With `href` the whole card is a link.
+ * A disabled link card loses `href`, so it leaves the tab order.
+ */
+export const SwCard = defineComponent(
+  (props: CardProps, { slots }) =>
+    () => {
+      const children = [
+        props.eyebrow ? h('span', { class: 'sw-card__eyebrow' }, props.eyebrow) : null,
+        props.title ? h('h3', { class: 'sw-card__title' }, props.title) : null,
+        slots.default ? h('div', { class: 'sw-card__body' }, slots.default()) : null,
+        slots.footer ? h('div', { class: 'sw-card__footer' }, slots.footer()) : null
+      ]
+      return h(
+        props.href ? 'a' : 'article',
+        {
+          class: ['sw-card', { 'sw-is-disabled': props.disabled }],
+          href: props.href && !props.disabled ? props.href : undefined,
+          'aria-disabled': props.disabled ? 'true' : undefined
+        },
+        children
+      )
+    },
+  {
+    name: 'SwCard',
+    props: {
+      eyebrow: { type: String, default: '' },
+      title: { type: String, default: '' },
+      href: { type: String, default: '' },
+      disabled: { type: Boolean, default: false }
+    }
+  }
+)

@@ -8,6 +8,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Thi
 
 ### Added
 
+- **`@synthwerk/ui-vue` 0.1.0 (`synthwerk-ui`).** Seven Vue 3.5 components from the Figma library: button, pill, input, card, status pill, terminal snippet and divider. They read tokens only. Each has dark and light, focus and disabled states. A test checks text contrast of 4.5:1 or more for every theme, mode and group.
 - **Group accents (VM. studio).** `data-group="flagship|vlm|rig"` switches `--accent-2`, `--accent-2-fg`, `--accent-2-text`, `--ring` and the new `--group-fill`. Missing = `flagship`, so the look does not change for current pages. New exports: `groups`, `groupNames`, `groupColorNames`, `defaultGroup`, `resolveRefs`; `resolveColors` takes an optional group. Tailwind gets `color-group`.
 - Primitives `violet-300`, `violet-800`, `amber-500`.
 
