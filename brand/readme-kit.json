@@ -44,10 +44,22 @@
       "type": "stats",
       "title": "SYNTHWERK-SDK IN NUMBERS",
       "items": [
-        { "value": "1", "label": "PACKAGE WORKS" },
-        { "value": "6", "label": "PACKAGES PLANNED" },
-        { "value": "5", "label": "EXPORT PATHS" },
-        { "value": "3", "label": "COLOR MODES" }
+        {
+          "value": "1",
+          "label": "PACKAGE WORKS"
+        },
+        {
+          "value": "6",
+          "label": "PACKAGES PLANNED"
+        },
+        {
+          "value": "5",
+          "label": "EXPORT PATHS"
+        },
+        {
+          "value": "3",
+          "label": "COLOR MODES"
+        }
       ]
     },
     {
@@ -85,9 +97,19 @@
       "type": "flow",
       "title": "ONE SOURCE, THREE OUTPUTS",
       "nodes": [
-        { "title": "tokens.ts", "sub": "one source, four layers" },
-        { "title": "OUTPUTS", "sub": "tokens.css, tailwind.css, tokens.json", "hot": true },
-        { "title": "APPS", "sub": "studio, widgets, SDK apps" }
+        {
+          "title": "tokens.ts",
+          "sub": "one source, four layers"
+        },
+        {
+          "title": "OUTPUTS",
+          "sub": "tokens.css, tailwind.css, tokens.json",
+          "hot": true
+        },
+        {
+          "title": "APPS",
+          "sub": "studio, widgets, SDK apps"
+        }
       ],
       "caption": "themes default + contrast. modes light, dark, system."
     },
@@ -96,12 +118,322 @@
       "type": "status",
       "title": "WHAT WORKS TODAY",
       "rows": [
-        { "label": "@synthwerk/tokens", "value": "0.2.0", "state": "ok" },
-        { "label": "tokens.css / tailwind.css / tokens.json", "value": "working", "state": "ok" },
-        { "label": "@synthwerk/sdk", "value": "not built", "state": "planned" },
-        { "label": "vue / react adapters", "value": "planned", "state": "planned" },
-        { "label": "npm publish", "value": "waiting on npm org", "state": "off" }
+        {
+          "label": "@synthwerk/tokens",
+          "value": "0.2.0",
+          "state": "ok"
+        },
+        {
+          "label": "tokens.css / tailwind.css / tokens.json",
+          "value": "working",
+          "state": "ok"
+        },
+        {
+          "label": "@synthwerk/sdk",
+          "value": "not built",
+          "state": "planned"
+        },
+        {
+          "label": "vue / react adapters",
+          "value": "planned",
+          "state": "planned"
+        },
+        {
+          "label": "npm publish",
+          "value": "waiting on npm org",
+          "state": "off"
+        }
       ]
+    },
+    {
+      "key": "lead",
+      "type": "lead",
+      "title": "ABOUT",
+      "text": "**synthwerk-sdk** holds the `@synthwerk/*` npm packages. Studio, widgets and SDK apps import them. The first package is the design tokens. The rest is a plan. The plan is detailed."
+    },
+    {
+      "key": "what",
+      "type": "notes",
+      "title": "WHAT IT DOES",
+      "columns": 2,
+      "items": [
+        {
+          "lead": "One pnpm workspace",
+          "text": "For the `@synthwerk/*` packages: SDK, framework adapters and design packages. TypeScript."
+        },
+        {
+          "lead": "@synthwerk/tokens",
+          "text": "The public look (D-41) as CSS variables, a Tailwind 4 theme, JSON and typed exports."
+        },
+        {
+          "lead": "No service at build time",
+          "text": "Run `pnpm install && pnpm check`. The repo calls no service at build time."
+        },
+        {
+          "lead": "Tokens work",
+          "text": "The SDK, the adapters and the UI packages do not exist yet. Nothing is on npm yet."
+        }
+      ]
+    },
+    {
+      "key": "demo",
+      "type": "commands",
+      "title": "TOKENS DEMO AND SCREENSHOTS",
+      "rows": [
+        {
+          "cmd": "pnpm --filter @synthwerk/tokens demo",
+          "text": "Demo page on `http://127.0.0.1:4173/demo/`."
+        },
+        {
+          "cmd": "pnpm --filter @synthwerk/tokens screenshots",
+          "text": "Theme checks in Chromium + PNGs in `./screenshots`."
+        }
+      ]
+    },
+    {
+      "key": "import",
+      "type": "terminal",
+      "title": "IN AN APP, IMPORT THE CSS AFTER TAILWIND",
+      "lines": [
+        "@import \"tailwindcss\";",
+        "@import \"@synthwerk/tokens/tokens.css\";",
+        "@import \"@synthwerk/tokens/tailwind.css\";"
+      ]
+    },
+    {
+      "key": "outputs",
+      "type": "commands",
+      "title": "ONE SOURCE, THREE FILES, TWO THEMES",
+      "rows": [
+        {
+          "cmd": "src/tokens.ts",
+          "text": "One source in four layers: primitive > semantic > component > service."
+        },
+        {
+          "cmd": "tokens.css",
+          "text": "CSS vars."
+        },
+        {
+          "cmd": "tailwind.css",
+          "text": "Tailwind map."
+        },
+        {
+          "cmd": "tokens.json",
+          "text": "Hex values."
+        },
+        {
+          "cmd": "consumers",
+          "text": "Studio, widgets and SDK apps read all three."
+        },
+        {
+          "cmd": "themes",
+          "text": "**default** (website + dashboard look) and **contrast** (AAA)."
+        },
+        {
+          "cmd": "modes",
+          "text": "**light**, **dark** and **system**. Default: follow the OS."
+        }
+      ]
+    },
+    {
+      "key": "packages",
+      "type": "commands",
+      "title": "PACKAGES, CONFIGURATION, API",
+      "rows": [
+        {
+          "cmd": "@synthwerk/tokens",
+          "text": "In `packages/tokens`. Exports `.` (typed data, `resolveMode`, `contrastRatio`, `firstPaintScript`), `./tokens.css`, `./tailwind.css`, `./tokens.json`, `./assets/*`. **0.2.0, not published.**"
+        },
+        {
+          "cmd": "configuration",
+          "text": "None. The repo ships npm packages, not a running service."
+        },
+        {
+          "cmd": "API and events",
+          "text": "No HTTP API and no events. Service APIs live in [synthwerk-contracts](https://github.com/VelimirMueller/synthwerk-contracts)."
+        }
+      ]
+    },
+    {
+      "key": "dev",
+      "type": "notes",
+      "title": "DEVELOPMENT",
+      "columns": 2,
+      "items": [
+        {
+          "lead": "Lint and format",
+          "text": "Biome 2.5 (D-06). Run `pnpm format` before a commit."
+        },
+        {
+          "lead": "TypeScript 6.0.3 for now",
+          "text": "The SDK core moves to TS 7 when it starts."
+        },
+        {
+          "lead": "Node 24",
+          "text": "Runs the `.ts` scripts directly (type stripping). No `tsx` needed."
+        },
+        {
+          "lead": "Unit tests",
+          "text": "Live in `tests/unit/`. Run `pnpm test`."
+        },
+        {
+          "lead": "Blueprint",
+          "text": "Shared CI and templates: [synthwerk-blueprint](https://github.com/VelimirMueller/synthwerk-blueprint)."
+        },
+        {
+          "lead": "Reference",
+          "text": "The full layout, fonts, logo and roadmap are in `docs/REFERENCE.md`."
+        }
+      ]
+    },
+    {
+      "key": "now",
+      "type": "stats",
+      "title": "WHERE IT STANDS",
+      "items": [
+        {
+          "value": "M0",
+          "label": "STATUS: IN DEVELOPMENT"
+        },
+        {
+          "value": "0.2.0",
+          "label": "WORKS: @SYNTHWERK/TOKENS"
+        },
+        {
+          "value": "SDK",
+          "label": "NEXT: @SYNTHWERK/SDK FROM CONTRACTS"
+        }
+      ]
+    },
+    {
+      "key": "check",
+      "type": "terminal",
+      "title": "RUN THE WHOLE CHECK",
+      "lines": ["$ pnpm check", "# biome ci, tsc --noEmit, vitest run, build"]
+    },
+    {
+      "key": "docs",
+      "type": "notes",
+      "columns": 2,
+      "items": [
+        {
+          "lead": "Feature doc",
+          "text": "[Brand tokens](docs/features/brand-tokens.md), beta."
+        },
+        {
+          "lead": "Changes",
+          "text": "The change log is `CHANGELOG.md`."
+        }
+      ]
+    },
+    {
+      "key": "links",
+      "type": "buttons",
+      "items": [
+        {
+          "label": "Ecosystem map",
+          "sub": "synthwerk",
+          "href": "https://github.com/VelimirMueller/synthwerk"
+        },
+        {
+          "label": "Reference",
+          "sub": "docs/REFERENCE.md",
+          "href": "docs/REFERENCE.md"
+        },
+        {
+          "label": "@synthwerk/tokens",
+          "sub": "packages/tokens · 0.2.0",
+          "href": "packages/tokens"
+        },
+        {
+          "label": "synthwerk-contracts",
+          "sub": "service APIs",
+          "href": "https://github.com/VelimirMueller/synthwerk-contracts"
+        },
+        {
+          "label": "synthwerk-blueprint",
+          "sub": "shared CI",
+          "href": "https://github.com/VelimirMueller/synthwerk-blueprint"
+        },
+        {
+          "label": "Brand tokens",
+          "sub": "feature doc · beta",
+          "href": "docs/features/brand-tokens.md"
+        },
+        {
+          "label": "Changelog",
+          "sub": "CHANGELOG.md",
+          "href": "CHANGELOG.md"
+        },
+        {
+          "label": "License",
+          "sub": "MIT",
+          "href": "LICENSE"
+        },
+        {
+          "label": "Plain text",
+          "sub": "show copyable commands"
+        }
+      ]
+    },
+    {
+      "key": "footer",
+      "type": "footer",
+      "studio": "VM. studio / flagship",
+      "text": "open source · look per vm-brand playbook · MIT (c) 2026 Velimir Mueller",
+      "eof": "-- EOF -- tokens are not vibes --"
     }
-  ]
+  ],
+  "readme": {
+    "hero_alt": "SYNTHWERK-SDK. Design tokens now. Client and bindings next. npm packages for Synthwerk apps. Working.",
+    "items": [
+      "lead",
+      "stats",
+      "divider:what",
+      "features",
+      "what",
+      "divider:start",
+      "start",
+      "demo",
+      "import",
+      {
+        "details": "links",
+        "chip": 9,
+        "code": [
+          [
+            "bash",
+            "corepack enable\npnpm install\npnpm check      # biome ci, tsc --noEmit, vitest run, build\npnpm --filter @synthwerk/tokens demo         # demo page on http://127.0.0.1:4173/demo/\npnpm --filter @synthwerk/tokens screenshots  # theme checks in Chromium + PNGs in ./screenshots"
+          ],
+          [
+            "css",
+            "@import \"tailwindcss\";\n@import \"@synthwerk/tokens/tokens.css\";\n@import \"@synthwerk/tokens/tailwind.css\";"
+          ]
+        ]
+      },
+      "divider:how",
+      "flow",
+      "outputs",
+      {
+        "buttons": "links",
+        "only": [1, 2]
+      },
+      "divider:usage",
+      "packages",
+      "dev",
+      {
+        "buttons": "links",
+        "only": [3, 4, 5]
+      },
+      "divider:status",
+      "status",
+      "now",
+      "check",
+      "docs",
+      {
+        "buttons": "links",
+        "only": [6, 7, 8]
+      },
+      "footer"
+    ]
+  }
 }
