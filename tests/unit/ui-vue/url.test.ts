@@ -17,6 +17,7 @@ const BLOCKED = [
   'data:text/html,<script>alert(1)</script>',
   'DATA:text/html;base64,PHNjcmlwdD5hbGVydCgxKTwvc2NyaXB0Pg==',
   'vbscript:msgbox(1)',
+  'java script:alert(1)',
   'file:///etc/passwd',
   ''
 ]
@@ -31,7 +32,9 @@ const ALLOWED: readonly (readonly [string, string])[] = [
   ['HTTP://example.com', 'HTTP://example.com'],
   ['mailto:hi@example.com', 'mailto:hi@example.com'],
   ['tel:+491234', 'tel:+491234'],
-  [' https://example.com ', 'https://example.com']
+  [' https://example.com ', 'https://example.com'],
+  ['/my docs/a b.html', '/my docs/a b.html'],
+  ['https://exa\tmple.com', 'https://example.com']
 ]
 
 describe('safeHref', () => {
