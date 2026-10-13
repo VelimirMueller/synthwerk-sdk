@@ -17,7 +17,14 @@ const types: Record<string, string> = {
 /** Serves the package folder on 127.0.0.1. Port 0 picks a free port. */
 export function serve(port = 0): Promise<{ server: Server; url: string }> {
   const server = createServer(async (req, res) => {
-    const path = decodeURIComponent(new URL(req.url ?? '/', 'http://x').pathname)
+    let path: string
+    try {
+      path = decodeURIComponent(new URL(req.url ?? '/', 'http://x').pathname)
+    } catch {
+      // Malformed percent-encoding (for example /%E0): answer 400, do not stop the server.
+      res.writeHead(400).end('bad request')
+      return
+    }
     const file = resolve(root, `.${path.endsWith('/') ? `${path}index.html` : path}`)
     // Boundary check: the resolved file must stay inside the package folder.
     if (!file.startsWith(root.endsWith(sep) ? root : root + sep)) {
@@ -41,7 +48,8 @@ export function serve(port = 0): Promise<{ server: Server; url: string }> {
   })
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+// import.meta.main (Node >= 24) also works for paths with spaces, non-ASCII letters and symlinks.
+if (import.meta.main) {
   const { url } = await serve(Number(process.env.PORT ?? 4173))
   console.log(`demo: ${url}demo/`)
 }

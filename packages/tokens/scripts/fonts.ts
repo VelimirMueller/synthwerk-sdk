@@ -73,7 +73,8 @@ export async function fetchAll(): Promise<void> {
   }
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+// import.meta.main (Node >= 24) also works for paths with spaces, non-ASCII letters and symlinks.
+if (import.meta.main) {
   await fetchAll()
   console.log(`fonts cached in ${cacheRoot}`)
 }
