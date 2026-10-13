@@ -8,7 +8,7 @@ paths: ["packages/tokens/src/**", "packages/tokens/scripts/**", "packages/tokens
 api: []
 events: []
 mcp: []
-updated: 2026-10-09
+updated: 2026-10-13
 ---
 
 # Brand tokens
@@ -140,12 +140,15 @@ updated: 2026-10-09
 - `tests/unit/tokens/layers.test.ts` — `semantic layer - all themes and modes - has no hex and no colour function`
 - `tests/unit/tokens/theme.test.ts` — `resolveMode - default, nothing stored - follows the OS`
 - `tests/unit/tokens/assets.test.ts` — `logo asset - text - outlined`
+- `tests/unit/tokens/serve.test.ts` — `malformed URL - /%E0 - answers 400 and the server keeps running`
+- `tests/unit/tokens/serve.test.ts` — `main-module check - script in a path with a space and a non-ASCII letter - starts`
 - `packages/tokens/scripts/screenshots.ts` — checks the theme rules in Chromium and writes the review screenshots.
 
 ## Changes
 
 | Date | Change |
 |---|---|
+| 2026-10-13 | `pnpm demo` and `pnpm fonts` use `import.meta.main`, so they start from paths with spaces, non-ASCII letters or symlinks. The demo server answers 400 to a malformed URL (#8). |
 | 2026-10-09 | Public look (D-41): `default` is the website + dashboard look. `cyberpunk` is removed. `contrast` is added for low vision. |
 | 2026-10-09 | Add `--border-control` (3:1 control boundaries, WCAG 1.4.11). Badge fill tint is 0 % in light modes. |
 | 2026-10-09 | First version (story S-E0-10). |
