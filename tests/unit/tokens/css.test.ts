@@ -4,6 +4,7 @@ import { dirname } from 'node:path'
 import { compile } from 'tailwindcss'
 import { describe, expect, it } from 'vitest'
 import {
+  groupSelector,
   renderTailwindCss,
   renderTokensCss,
   renderTokensJson,
@@ -138,9 +139,7 @@ describe('tokens.css structure', () => {
   })
 
   it.each(groupNames)('group %s - rule - sets accent-2, ring, fg and fill', (group) => {
-    const rule = findRule(
-      `[data-group="${group}"], [data-group="${group}"] [data-theme]:not([data-group])`
-    )
+    const rule = findRule(groupSelector(group))
     const accent = `var(--group-${group}-accent)`
     expect(rule.decls.get('--accent-2')).toBe(accent)
     expect(rule.decls.get('--accent-2-text')).toBe(accent)

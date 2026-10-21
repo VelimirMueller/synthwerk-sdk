@@ -1,5 +1,6 @@
 export * from './contrast.ts'
 export {
+  groupSelector,
   renderEffects,
   renderTailwindCss,
   renderTokensCss,

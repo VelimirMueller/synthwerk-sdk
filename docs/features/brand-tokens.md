@@ -8,7 +8,7 @@ paths: ["packages/tokens/src/**", "packages/tokens/scripts/**", "packages/tokens
 api: []
 events: []
 mcp: []
-updated: 2026-10-13
+updated: 2026-10-21
 ---
 
 # Brand tokens
@@ -27,7 +27,10 @@ updated: 2026-10-13
 - `tokens.css` sets CSS custom properties on `:root` and on every `[data-theme]` element.
 - `tailwind.css` maps the variables to Tailwind 4 utilities with `@theme inline`.
 - `tokens.json` gives the resolved hex values for charts and canvas code.
-- `[data-group="flagship|vlm|rig"]` sets the VM. studio group accent: `--accent-2`, `--accent-2-fg`, `--accent-2-text`, `--ring` and the graphic `--group-fill`. Missing = `flagship` (indigo, unchanged look).
+- `[data-group="flagship|lab|ops|venture"]` sets the VM. studio group accent: `--accent-2`, `--accent-2-fg`, `--accent-2-text`, `--ring` and the graphic `--group-fill`. Missing = `flagship` (indigo, unchanged look).
+- Every group rule also sets the group style: `--group-font-display`, `--group-corner` (factor on the radii), `--group-ornament` (`0` or `1`) and `--group-tracking`. Only `venture` changes them (B-46: Cinzel, `0.15`, `1`, `0.02em`).
+- `src/brand-groups.json` holds the group colours and the venture style. vm-brand `scripts/group-tokens.py` generates it from vm-brand `brand.json`. Do not edit it; vm-brand CI fails when it differs.
+- `data-group="vlm"` and `data-group="rig"` are deprecated aliases of `lab` and `ops` for one release.
 - `[data-service="<name>"]` sets `--service-accent` and `--service-accent-text`. Nothing else changes per service.
 - `prefers-reduced-motion: reduce` sets every duration to `0.01ms`.
 - `assets/` holds the `SYNTHWERK.` logo, wordmark and the `S.` mark in light and dark, plus a favicon. The wordmark text is outlined in Space Mono Bold.
@@ -64,14 +67,15 @@ updated: 2026-10-13
 | Rule | Value |
 |---|---|
 | Theme switch | `data-theme="default \| contrast"` on `<html>`. Missing = `default`. |
-| Group switch | `data-group="flagship \| vlm \| rig"` on `<html>` or any element. Missing = `flagship`. Set once per site, not stored. |
+| Group switch | `data-group="flagship \| lab \| ops \| venture"` on `<html>` or any element. Missing = `flagship`. Set once per site, not stored. `vlm` and `rig` are deprecated aliases of `lab` and `ops` (removed in the next minor release). |
 | Mode switch | `data-mode="light \| dark \| system"` on `<html>`. Missing = nothing stored. |
 | Nothing stored | Both themes follow the OS (`prefers-color-scheme`). |
 | Stored choice | Always wins over the OS. |
 | Body text contrast | ≥ 4.5:1 on `--bg`, `--surface` and `--surface-2` |
 | UI contrast (`--ring`, `--border-control`, print signal on paper) | ≥ 3:1 on `--bg`, `--surface` and `--surface-2` |
 | Control boundary (input, select, checkbox, secondary button) | `--border-control` (WCAG 1.4.11). `--border` is for decorative dividers only. |
-| Group accents | Flagship indigo, vlm violet, rig amber (vm-brand playbook B-18 … B-21). Text meets AA in `default` and AAA in `contrast`. Emerald stays status; rig amber never goes on status chips. |
+| Group accents | Flagship indigo, lab violet, ops magenta, venture amber (vm-brand playbook B-34, B-42, B-52). `default` values come from vm-brand `brand.json`; `contrast` values are `contrastAccents` in `src/tokens.ts`. Text meets AA in `default` and AAA in `contrast`. Emerald stays status; group accents never go on status chips. |
+| Group style | `--group-font-display`, `--group-corner`, `--group-ornament`, `--group-tracking`. Venture only (B-46). Load Cinzel yourself; the package does not bundle it. |
 | Service badge | Text `--service-accent-text`. Fill tint 8 % in light modes, 14 % in dark modes. Text ≥ 4.5:1 on the fill. |
 | `tokens.css` size | ≤ 8 KB gzip |
 | Fonts | Space Mono, Inter, JetBrains Mono. SIL OFL 1.1. Self-hosted. Not bundled. |
@@ -139,6 +143,9 @@ updated: 2026-10-13
 - `tests/unit/tokens/css.test.ts` — `Tailwind 4 compile - token utilities - map to the runtime variables`
 - `tests/unit/tokens/layers.test.ts` — `semantic layer - all themes and modes - has no hex and no colour function`
 - `tests/unit/tokens/theme.test.ts` — `resolveMode - default, nothing stored - follows the OS`
+- `tests/unit/tokens/groups.test.ts` — `group - default theme - uses the brand.json hex values`
+- `tests/unit/tokens/groups.test.ts` — `venture rule - css - declares the style properties`
+- `tests/unit/tokens/groups.test.ts` — `data-group="vlm" - css - shares the rule of lab`
 - `tests/unit/tokens/assets.test.ts` — `logo asset - text - outlined`
 - `tests/unit/tokens/serve.test.ts` — `malformed URL - /%E0 - answers 400 and the server keeps running`
 - `tests/unit/tokens/serve.test.ts` — `main-module check - script in a path with a space and a non-ASCII letter - starts`
@@ -148,6 +155,7 @@ updated: 2026-10-13
 
 | Date | Change |
 |---|---|
+| 2026-10-21 | Four groups `flagship`, `lab`, `ops` (magenta), `venture` (amber, B-46 style) from vm-brand `brand.json` via `src/brand-groups.json`. `vlm` and `rig` stay as deprecated aliases (vm-brand#15, #16). |
 | 2026-10-13 | `pnpm demo` and `pnpm fonts` use `import.meta.main`, so they start from paths with spaces, non-ASCII letters or symlinks. The demo server answers 400 to a malformed URL (#8). |
 | 2026-10-09 | Public look (D-41): `default` is the website + dashboard look. `cyberpunk` is removed. `contrast` is added for low vision. |
 | 2026-10-09 | Add `--border-control` (3:1 control boundaries, WCAG 1.4.11). Badge fill tint is 0 % in light modes. |

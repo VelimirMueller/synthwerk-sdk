@@ -9,6 +9,8 @@
  * 4. Service: `--service-accent` and `--service-accent-text` only.
  */
 
+import brandGroups from './brand-groups.json' with { type: 'json' }
+
 // ---------------------------------------------------------------- 1. Primitives
 
 export const primitives = {
@@ -60,6 +62,11 @@ export const primitives = {
   'violet-600': '#7C3AED',
   'violet-700': '#6D28D9',
   'violet-800': '#5B21B6',
+  // Ops magenta (vm-brand B-26/B-34): the Overdrive magenta and Tailwind fuchsia steps.
+  'magenta-400': '#EE4FFF',
+  'fuchsia-300': '#F0ABFC',
+  'fuchsia-700': '#A21CAF',
+  'fuchsia-800': '#86198F',
   'pink-400': '#F472B6',
   'pink-700': '#BE185D',
   'amber-300': '#FCD34D',
@@ -420,14 +427,39 @@ export const services = {
 // ---------------------------------------------------------------- 4b. Group accent
 
 /**
- * VM. studio groups (vm-brand playbook B-18 … B-21). Every group shares the D-41 base and
- * changes only `accent-2`, `accent-2-fg`, `accent-2-text` and `ring`. Emerald stays status.
+ * VM. studio groups (vm-brand playbook B-34, B-42, B-46, B-52). Every group shares the D-41
+ * base and changes only `accent-2`, `accent-2-fg`, `accent-2-text`, `ring` and the group style.
+ * Emerald stays status.
  * - `flagship`: synthwerk family. Indigo, the values of the themes above.
- * - `vlm`: every `vlm-*` repo. Violet, the neighbour of indigo.
- * - `rig`: private tools (tix, rig, dual-review …). Amber. Never use it on status chips.
+ * - `lab`: personal side projects. Violet, the neighbour of indigo.
+ * - `ops`: private tools. Magenta. Never use it on status chips.
+ * - `venture`: private-income products. Amber, with the rustic style of B-46.
+ *
+ * The `default` theme values and the venture style come from `brand-groups.json`, which
+ * vm-brand `scripts/group-tokens.py` generates from its `brand.json`. Do not edit that file.
+ * The `contrast` theme values are owned here (`contrastAccents`).
  */
-export const groupNames = ['flagship', 'vlm', 'rig'] as const
+export const groupNames = ['flagship', 'lab', 'ops', 'venture'] as const
 export type GroupName = (typeof groupNames)[number]
+
+/**
+ * Old group names, kept for one release. `data-group="vlm"` renders as `lab` and
+ * `data-group="rig"` as `ops` (magenta; the amber rig of B-30 is superseded).
+ * @deprecated Use `lab` and `ops`. The aliases go away in the next minor release.
+ */
+export const deprecatedGroupAliases = { vlm: 'lab', rig: 'ops' } as const satisfies Record<
+  string,
+  GroupName
+>
+/** @deprecated Use `GroupName`. */
+export type DeprecatedGroupName = keyof typeof deprecatedGroupAliases
+
+/** A group name or a deprecated alias, resolved to the group name. */
+export function resolveGroupName(name: GroupName | DeprecatedGroupName): GroupName {
+  return name in deprecatedGroupAliases
+    ? deprecatedGroupAliases[name as DeprecatedGroupName]
+    : (name as GroupName)
+}
 
 /** `accent` is `accent-2`, `accent-2-text` and `ring`. `fg` is text on an `accent` fill. */
 export interface GroupMode {
@@ -435,57 +467,115 @@ export interface GroupMode {
   readonly fg: Primitive
 }
 
+/**
+ * The group style (vm-brand B-46). Groups without a style in brand.json get `plainGroupStyle`.
+ * - `display`: font stack for titles, the wordmark and numbers.
+ * - `corner`: factor on every radius (1 = the D-41 radii, 0.15 = near-square).
+ * - `ornament`: draw the inset rule and corner brackets.
+ * - `tracking`: extra letter spacing of display text.
+ */
+export interface GroupStyle {
+  readonly display: string
+  readonly corner: number
+  readonly ornament: boolean
+  readonly tracking: string
+}
+
 export interface Group {
   /** Graphic fill for glows, lines and banner art. Never text. */
   readonly fill: Primitive
   readonly themes: Readonly<Record<ThemeName, Readonly<Record<Mode, GroupMode>>>>
+  readonly style: GroupStyle
 }
 
 /** The semantic colours a group decides. Theme blocks never declare these directly. */
 export const groupColorNames = ['accent-2', 'accent-2-fg', 'accent-2-text', 'ring'] as const
 export type GroupColor = (typeof groupColorNames)[number]
 
-export const groups = {
-  flagship: {
-    fill: 'indigo-500',
-    themes: {
-      default: {
-        light: { accent: 'indigo-600', fg: 'white' },
-        dark: { accent: 'indigo-400', fg: 'graphite-950' }
-      },
-      contrast: {
-        light: { accent: 'indigo-800', fg: 'white' },
-        dark: { accent: 'indigo-300', fg: 'black' }
+/** The CSS custom properties a group style sets, with `--group-` in front. */
+export const groupStyleNames = ['font-display', 'corner', 'ornament', 'tracking'] as const
+
+/** Display fonts a brand.json style may name. Load the font yourself (SIL OFL 1.1). */
+export const groupDisplayFonts = {
+  cinzel: '"Cinzel", "Trajan Pro", Georgia, "Times New Roman", serif'
+} as const satisfies Record<string, string>
+
+/** The style of a group without a brand.json style: the D-41 look. */
+export const plainGroupStyle: GroupStyle = {
+  display: 'var(--font-display)',
+  corner: 1,
+  ornament: false,
+  tracking: '0em'
+}
+
+/**
+ * `contrast` theme accents (text ≥ 7:1). brand.json has no contrast theme, so they live here.
+ * `dark` sits on the black contrast page, `light` on the white one.
+ */
+export const contrastAccents = {
+  flagship: { light: 'indigo-800', dark: 'indigo-300' },
+  lab: { light: 'violet-800', dark: 'violet-300' },
+  ops: { light: 'fuchsia-800', dark: 'fuchsia-300' },
+  venture: { light: 'amber-900', dark: 'amber-300' }
+} as const satisfies Record<GroupName, Record<Mode, Primitive>>
+
+/** Ink on an accent fill, per brand.json polarity (`fg: "dark" | "light"`) and theme. */
+const groupInk = {
+  default: { dark: 'graphite-950', light: 'white' },
+  contrast: { dark: 'black', light: 'white' }
+} as const satisfies Record<ThemeName, Record<'dark' | 'light', Primitive>>
+
+/** The primitive with this hex value (first in declaration order). Throws when none exists. */
+export function primitiveForHex(hex: string): Primitive {
+  const want = hex.toUpperCase()
+  const hit = (Object.keys(primitives) as Primitive[]).find((p) => primitives[p] === want)
+  if (!hit) throw new Error(`brand-groups.json: ${hex} has no primitive in tokens.ts`)
+  return hit
+}
+
+function polarity(value: string, where: string): 'dark' | 'light' {
+  if (value === 'dark' || value === 'light') return value
+  throw new Error(`brand-groups.json: ${where}.fg = ${value}, expected dark or light`)
+}
+
+function brandStyle(raw: unknown, group: string): GroupStyle {
+  if (raw === undefined) return plainGroupStyle
+  const r = raw as { display: string; corner: number; ornament: boolean; track: number }
+  const display = groupDisplayFonts[r.display as keyof typeof groupDisplayFonts]
+  if (!display) throw new Error(`brand-groups.json: ${group}.style.display ${r.display} is unknown`)
+  return { display, corner: r.corner, ornament: r.ornament, tracking: `${r.track}em` }
+}
+
+/** Builds one group from its brand-groups.json entry and the contrast table. */
+function buildGroup(name: GroupName): Group {
+  const raw = brandGroups.groups[name as keyof typeof brandGroups.groups] as
+    | {
+        fill: string
+        dark: { accent: string; fg: string }
+        light: { accent: string; fg: string }
+        style?: unknown
       }
-    }
-  },
-  vlm: {
-    fill: 'violet-500',
-    themes: {
-      default: {
-        light: { accent: 'violet-600', fg: 'white' },
-        dark: { accent: 'violet-400', fg: 'graphite-950' }
-      },
-      contrast: {
-        light: { accent: 'violet-800', fg: 'white' },
-        dark: { accent: 'violet-300', fg: 'black' }
-      }
-    }
-  },
-  rig: {
-    fill: 'amber-500',
-    themes: {
-      default: {
-        light: { accent: 'amber-700', fg: 'white' },
-        dark: { accent: 'amber-400', fg: 'graphite-950' }
-      },
-      contrast: {
-        light: { accent: 'amber-900', fg: 'white' },
-        dark: { accent: 'amber-300', fg: 'black' }
-      }
-    }
+    | undefined
+  if (!raw) throw new Error(`brand-groups.json: group ${name} is missing`)
+  const mode = (theme: ThemeName, m: Mode): GroupMode => {
+    const ink = groupInk[theme][polarity(raw[m].fg, `${name}.${m}`)]
+    const accent = theme === 'default' ? primitiveForHex(raw[m].accent) : contrastAccents[name][m]
+    return { accent, fg: ink }
   }
-} as const satisfies Record<GroupName, Group>
+  const themesOf = (theme: ThemeName) => ({
+    light: mode(theme, 'light'),
+    dark: mode(theme, 'dark')
+  })
+  return {
+    fill: primitiveForHex(raw.fill),
+    themes: { default: themesOf('default'), contrast: themesOf('contrast') },
+    style: brandStyle(raw.style, name)
+  }
+}
+
+export const groups: Readonly<Record<GroupName, Group>> = Object.fromEntries(
+  groupNames.map((name) => [name, buildGroup(name)])
+) as Record<GroupName, Group>
 
 /** Missing `data-group` = this group. Its values equal the theme values above. */
 export const defaultGroup: GroupName = 'flagship'

@@ -2,8 +2,10 @@
 import {
   brand,
   components,
+  type DeprecatedGroupName,
   defaultGroup,
   defaultMode,
+  deprecatedGroupAliases,
   fonts,
   type Gradient,
   type GroupColor,
@@ -18,6 +20,7 @@ import {
   type Primitive,
   primitives,
   radii,
+  resolveGroupName,
   type SemanticColor,
   type SemanticEffects,
   type Shadow,
@@ -123,16 +126,38 @@ const SCOPE = ':root, [data-theme], [data-group], [data-service]'
 const isGroupColor = (name: string): name is GroupColor =>
   (groupColorNames as readonly string[]).includes(name)
 
-/** The group colours of `group`, as `var(--group-<group>-…)` references. */
+/**
+ * The group colours of `group`, as `var(--group-<group>-…)` references, and its style:
+ * `--group-font-display`, `--group-corner` (radius factor), `--group-ornament` (0 or 1)
+ * and `--group-tracking`. Every group declares all four, so a nested group resets them.
+ */
 function groupLines(group: GroupName): string[] {
   const accent = v(`group-${group}-accent`)
+  const style = groups[group].style
   return [
     decl('accent-2', accent),
     decl('accent-2-fg', v(`group-${group}-fg`)),
     decl('accent-2-text', accent),
     decl('ring', accent),
-    decl('group-fill', v(groups[group].fill))
+    decl('group-fill', v(groups[group].fill)),
+    decl('group-font-display', style.display),
+    decl('group-corner', String(style.corner)),
+    decl('group-ornament', style.ornament ? '1' : '0'),
+    decl('group-tracking', style.tracking)
   ]
+}
+
+/** The selector of a group rule: the group and its deprecated aliases. */
+export function groupSelector(group: GroupName): string {
+  const names = [
+    group,
+    ...Object.entries(deprecatedGroupAliases)
+      .filter(([, target]) => target === group)
+      .map(([alias]) => alias)
+  ]
+  return names
+    .map((n) => `[data-group="${n}"], [data-group="${n}"] [data-theme]:not([data-group])`)
+    .join(', ')
 }
 
 // ---------------------------------------------------------------- tokens.css
@@ -201,16 +226,12 @@ export function renderTokensCss(): string {
   }
   out.push('}', '')
 
-  out.push('/* 2b. Group accent (VM. studio): accent-2, accent-2-fg, accent-2-text, ring. */')
+  out.push(
+    '/* 2b. Group accent and style (VM. studio). Values: vm-brand brand.json (brand-groups.json). */',
+    '/* Deprecated aliases for one release: vlm = lab, rig = ops. */'
+  )
   out.push(block(':where(:root, [data-theme], [data-group])', groupLines(defaultGroup)))
-  for (const group of groupNames) {
-    out.push(
-      block(
-        `[data-group="${group}"], [data-group="${group}"] [data-theme]:not([data-group])`,
-        groupLines(group)
-      )
-    )
-  }
+  for (const group of groupNames) out.push(block(groupSelector(group), groupLines(group)))
   out.push('')
 
   out.push('/* 3. Service accent: the only per-service variation. */')
@@ -321,9 +342,9 @@ export interface ResolvedThemeMode {
 export function resolveRefs(
   theme: ThemeName,
   mode: Mode,
-  group: GroupName = defaultGroup
+  group: GroupName | DeprecatedGroupName = defaultGroup
 ): Record<SemanticColor, Primitive> {
-  const g = groups[group].themes[theme][mode]
+  const g = groups[resolveGroupName(group)].themes[theme][mode]
   const groupRefs: Record<GroupColor, Primitive> = {
     'accent-2': g.accent,
     'accent-2-fg': g.fg,
@@ -337,7 +358,7 @@ export function resolveRefs(
 export function resolveColors(
   theme: ThemeName,
   mode: Mode,
-  group: GroupName = defaultGroup
+  group: GroupName | DeprecatedGroupName = defaultGroup
 ): Record<SemanticColor, string> {
   const refs = resolveRefs(theme, mode, group)
   return Object.fromEntries(semanticColorNames.map((n) => [n, primitives[refs[n]]])) as Record<
@@ -384,11 +405,13 @@ export function renderTokensJson(): string {
                 })
               )
             ])
-          )
+          ),
+          style: groups[group].style
         }
       ])
     ),
     defaultGroup,
+    groupAliases: deprecatedGroupAliases,
     services: Object.fromEntries(
       serviceNames.map((s) => [
         s,
