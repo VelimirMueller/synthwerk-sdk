@@ -1,6 +1,6 @@
 {
   "name": "@synthwerk/tokens",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Synthwerk design tokens (public look, D-41): CSS custom properties, Tailwind 4 theme, JSON and typed exports",
   "license": "MIT",
   "author": "Velimir Mueller",

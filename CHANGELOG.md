@@ -8,12 +8,20 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Thi
 
 ### Added
 
+- **Four groups (vm-brand B-52).** `data-group="flagship|lab|ops|venture"`. Ops is magenta `#EE4FFF` (B-34), venture is amber (B-42). The `default` theme values come from vm-brand `brand.json` through the generated `packages/tokens/src/brand-groups.json` (vm-brand `scripts/group-tokens.py`; vm-brand CI fails on drift). New exports: `deprecatedGroupAliases`, `resolveGroupName`, `contrastAccents`, `groupStyleNames`, `groupDisplayFonts`, `plainGroupStyle`, `primitiveForHex`, `groupSelector`. `tokens.json` gets `groups.<g>.style` and `groupAliases`.
+- **Group style (B-46).** Every group rule sets `--group-font-display`, `--group-corner`, `--group-ornament` and `--group-tracking`. Venture: Cinzel, `0.15`, `1`, `0.02em`. Other groups keep the D-41 look.
+- Primitives `magenta-400`, `fuchsia-300`, `fuchsia-700`, `fuchsia-800`.
 - **`@synthwerk/ui-vue` 0.1.0 (`synthwerk-ui`).** Seven Vue 3.5 components from the Figma library: button, pill, input, card, status pill, terminal snippet and divider. They read tokens only. Each has dark and light, focus and disabled states. A test checks text contrast of 4.5:1 or more for every theme, mode and group.
 - **Group accents (VM. studio).** `data-group="flagship|vlm|rig"` switches `--accent-2`, `--accent-2-fg`, `--accent-2-text`, `--ring` and the new `--group-fill`. Missing = `flagship`, so the look does not change for current pages. New exports: `groups`, `groupNames`, `groupColorNames`, `defaultGroup`, `resolveRefs`; `resolveColors` takes an optional group. Tailwind gets `color-group`.
 - Primitives `violet-300`, `violet-800`, `amber-500`.
 
+### Deprecated
+
+- `data-group="vlm"` and `data-group="rig"`: aliases of `lab` and `ops` for one release. `rig` is magenta now; the amber rig (B-30) is superseded. `resolveColors` and `resolveRefs` still take the old names.
+
 ### Changed
 
+- `@synthwerk/tokens` 0.3.0: four groups. `groups` and `GroupName` hold `flagship`, `lab`, `ops`, `venture`; `groups.vlm` and `groups.rig` are gone (the package was never published). `@synthwerk/ui-vue` peer range is `^0.3.0`.
 - `@synthwerk/tokens` 0.2.0: the public look (D-41). See `docs/ecosystem-plan/07c-public-presence.md`.
 
 ## [0.2.0]
