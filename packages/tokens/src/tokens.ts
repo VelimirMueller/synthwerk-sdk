@@ -105,10 +105,13 @@ export const gradients = {
 
 export type Gradient = keyof typeof gradients
 
-/** Brand palette (public presence, D-41): names for brand assets, mapped to primitives. */
+/**
+ * Brand palette (public presence, D-41): names for brand assets, mapped to primitives.
+ * `night` and `paper` are the dark and light pages. `night` is vm-brand `base.dark.page` (B-54).
+ */
 export const brand = {
   ink: 'zinc-850',
-  night: 'graphite-950',
+  night: 'night-950',
   paper: 'zinc-50',
   line: 'zinc-200',
   sub: 'zinc-600',

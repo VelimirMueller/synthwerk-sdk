@@ -8,7 +8,7 @@ paths: ["packages/tokens/src/**", "packages/tokens/scripts/**", "packages/tokens
 api: []
 events: []
 mcp: []
-updated: 2026-10-21
+updated: 2026-10-22
 ---
 
 # Brand tokens
@@ -40,6 +40,7 @@ updated: 2026-10-21
 - Fonts: Inter (body), Space Mono (display, labels, pills, code snippets), JetBrains Mono (code blocks).
 - `default` light matches velimir-mueller.de: page `#FAFAFA`, card `#FFFFFF`, line `#E4E4E7`, ink `#18181B`, sub `#71717A`.
 - `default` dark matches the code-context dashboard. Page and line come from vm-brand `brand.json` (`base.dark.page`, `base.dark.line`).
+- The dark page is `#0A0A0B` on every surface (vm-brand B-54): `--bg` and the brand palette name `brand.night` both use `night-950`. Ink on an accent fill (`accent-fg`, `accent-2-fg`, group ink) and the logo tile ink stay `graphite-950` `#0C0C10`; they are text, not a page.
 - Dark page `#0A0A0B`, panels `#131318` / `#18181F` / `#1E1E28`, lines `#1C1C28` / `#26262B`, text `#E4E4E7` / `#A1A1AA`.
 - Accents: emerald `#10B981` / `#34D399` (primary) and indigo `#6366F1` (accent line).
 - Status colours: amber `#FBBF24`, pink `#F472B6`, violet `#A78BFA`, red `#F87171`, blue `#3B82F6`.
@@ -144,6 +145,8 @@ updated: 2026-10-21
 - `tests/unit/tokens/layers.test.ts` — `semantic layer - all themes and modes - has no hex and no colour function`
 - `tests/unit/tokens/theme.test.ts` — `resolveMode - default, nothing stored - follows the OS`
 - `tests/unit/tokens/groups.test.ts` — `group - default theme - uses the brand.json hex values`
+- `tests/unit/tokens/groups.test.ts` — `default dark, group flagship - --bg - is brand.json base.dark.page`
+- `tests/unit/tokens/groups.test.ts` — `brand.night - primitive - is the dark page`
 - `tests/unit/tokens/groups.test.ts` — `venture rule - css - declares the style properties`
 - `tests/unit/tokens/groups.test.ts` — `data-group="vlm" - css - shares the rule of lab`
 - `tests/unit/tokens/assets.test.ts` — `logo asset - text - outlined`
@@ -155,6 +158,7 @@ updated: 2026-10-21
 
 | Date | Change |
 |---|---|
+| 2026-10-22 | The dark page is `#0A0A0B` (vm-brand B-54): default dark `--bg`, `--border` and `brand.night` come from `brand.json` `base.dark`. Tests pin the page (#11, #12). |
 | 2026-10-21 | Four groups `flagship`, `lab`, `ops` (magenta), `venture` (amber, B-46 style) from vm-brand `brand.json` via `src/brand-groups.json`. `vlm` and `rig` stay as deprecated aliases (vm-brand#15, #16). |
 | 2026-10-13 | `pnpm demo` and `pnpm fonts` use `import.meta.main`, so they start from paths with spaces, non-ASCII letters or symlinks. The demo server answers 400 to a malformed URL (#8). |
 | 2026-10-09 | Public look (D-41): `default` is the website + dashboard look. `cyberpunk` is removed. `contrast` is added for low vision. |

@@ -88,10 +88,10 @@ export const serviceTable = {
 
 /** Public presence notes (07c): status pill, accent line and edge glow stops. */
 export const brandNotes = {
-  emeraldOnNight: 7.7,
+  emeraldOnNight: 7.8,
   emeraldPrintOnPaper: 5.25,
-  indigoOnNight: 4.37,
+  indigoOnNight: 4.43,
   indigoPrintOnPaper: 6.02,
   edgeLightStopsOnPaper: [3.59, 5.46],
-  edgeDarkStopsOnNight: [7.84, 4.61]
+  edgeDarkStopsOnNight: [7.95, 4.67]
 } as const
