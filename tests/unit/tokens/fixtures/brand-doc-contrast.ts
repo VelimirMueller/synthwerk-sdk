@@ -1,4 +1,4 @@
-// Contrast tables copied from docs/features/brand-tokens.md § Contrast (2026-10-09, D-41 look).
+// Contrast tables copied from docs/features/brand-tokens.md § Contrast (2026-10-09, D-41 look; dark bg and border from vm-brand 2026-10-22).
 // The tests compare the computed ratios with these numbers. Do not "fix" a number here to make a
 // test pass: a difference means the feature doc or the tokens changed. Fix the source, then this file.
 import type { ThemeName } from '../../../../packages/tokens/src/tokens.ts'
@@ -20,15 +20,15 @@ export const textTable: Record<`${ThemeName}·${'light' | 'dark'}`, readonly Row
     ['accent-2-fg/accent-2', 6.29, null, 'AA']
   ],
   default·dark: [
-    ['fg', 15.39, 13.92, 'AAA'],
-    ['fg-muted', 7.62, 6.89, 'AA'],
-    ['fg-subtle', 5.79, 5.23, 'AA'],
-    ['accent-text', 18.7, 16.92, 'AAA'],
-    ['accent-2-text', 6.54, 5.92, 'AA'],
-    ['success', 7.7, 6.96, 'AA'],
-    ['warning', 11.69, 10.58, 'AAA'],
-    ['danger', 7.06, 6.38, 'AA'],
-    ['info', 7.68, 6.95, 'AA'],
+    ['fg', 15.6, 13.92, 'AAA'],
+    ['fg-muted', 7.72, 6.89, 'AA'],
+    ['fg-subtle', 5.86, 5.23, 'AA'],
+    ['accent-text', 18.96, 16.92, 'AAA'],
+    ['accent-2-text', 6.63, 5.92, 'AA'],
+    ['success', 7.8, 6.96, 'AA'],
+    ['warning', 11.85, 10.58, 'AAA'],
+    ['danger', 7.15, 6.38, 'AA'],
+    ['info', 7.78, 6.95, 'AA'],
     ['accent-fg/accent', 18.7, null, 'AAA'],
     ['accent-2-fg/accent-2', 6.54, null, 'AA']
   ],
@@ -63,7 +63,7 @@ export const textTable: Record<`${ThemeName}·${'light' | 'dark'}`, readonly Row
 /** `--ring` on `--bg` (UI, needs 3:1). */
 export const ringOnBg = {
   default·light: 6.02,
-  default·dark: 6.54,
+  default·dark: 6.63,
   contrast·light: 9.93,
   contrast·dark: 10.53
 } as const
@@ -71,7 +71,7 @@ export const ringOnBg = {
 /** `--border-control` on [--bg, --surface, --surface-2] (UI, needs 3:1, WCAG 1.4.11). */
 export const borderControlTable = {
   default·light: [3.28, 3.42, 3.11],
-  default·dark: [3.78, 3.58, 3.42],
+  default·dark: [3.83, 3.58, 3.42],
   contrast·light: [10.44, 10.44, 10.01],
   contrast·dark: [8.19, 7.76, 6.91]
 } as const

@@ -39,8 +39,8 @@ updated: 2026-10-21
 
 - Fonts: Inter (body), Space Mono (display, labels, pills, code snippets), JetBrains Mono (code blocks).
 - `default` light matches velimir-mueller.de: page `#FAFAFA`, card `#FFFFFF`, line `#E4E4E7`, ink `#18181B`, sub `#71717A`.
-- `default` dark matches the code-context dashboard.
-- Dark page `#0C0C10`, panels `#131318` / `#18181F` / `#1E1E28`, lines `#1C1C28` / `#282838`, text `#E4E4E7` / `#A1A1AA`.
+- `default` dark matches the code-context dashboard. Page and line come from vm-brand `brand.json` (`base.dark.page`, `base.dark.line`).
+- Dark page `#0A0A0B`, panels `#131318` / `#18181F` / `#1E1E28`, lines `#1C1C28` / `#26262B`, text `#E4E4E7` / `#A1A1AA`.
 - Accents: emerald `#10B981` / `#34D399` (primary) and indigo `#6366F1` (accent line).
 - Status colours: amber `#FBBF24`, pink `#F472B6`, violet `#A78BFA`, red `#F87171`, blue `#3B82F6`.
 - The primary button is a white pill on dark and a near-black pill on light.
@@ -93,20 +93,20 @@ updated: 2026-10-21
 | Emerald `#10B981` | white | 2.43:1 | `--success` light `#047857` | 5.25:1 |
 | Indigo `#6366F1` | `#FAFAFA` | 4.28:1 | `--accent-2-text` light `#4F46E5` | 6.02:1 |
 
-- `--border` (light `#E4E4E7`, dark `#282838`) is decorative. `--border-control` is a darker step: `#8A8A93` in light (3.28:1), `#6B6B84` in dark (3.78:1).
+- `--border` (light `#E4E4E7`, dark `#26262B`) is decorative. `--border-control` is a darker step: `#8A8A93` in light (3.28:1), `#6B6B84` in dark (3.83:1).
 
 ### Text on surfaces
 
 | Theme · mode | `fg` | `fg-muted` | `fg-subtle` | `success` | `warning` | `danger` | `info` |
 |---|---|---|---|---|---|---|---|
 | `default` light | 16.97 | 7.41 | 5.05 | 5.25 | 4.81 | 6.20 | 6.42 |
-| `default` dark | 15.39 | 7.62 | 5.79 | 7.70 | 11.69 | 7.06 | 7.68 |
+| `default` dark | 15.60 | 7.72 | 5.86 | 7.80 | 11.85 | 7.15 | 7.78 |
 | `contrast` light | 19.90 | 10.44 | 7.73 | 7.68 | 9.07 | 8.31 | 8.72 |
 | `contrast` dark | 21.00 | 14.21 | 10.20 | 13.78 | 14.56 | 11.06 | 11.65 |
 
 - Ratios are the lower of `--bg` and `--surface-2`. See `tests/unit/tokens/fixtures/brand-doc-contrast.ts` for the full tables.
-- `--ring` on `--bg`: `default` light 6.02, dark 6.54; `contrast` light 9.93, dark 10.53.
-- `--border-control` on `--bg` / `--surface` / `--surface-2`: `default` light 3.28 / 3.42 / 3.11, dark 3.78 / 3.58 / 3.42.
+- `--ring` on `--bg`: `default` light 6.02, dark 6.63; `contrast` light 9.93, dark 10.53.
+- `--border-control` on `--bg` / `--surface` / `--surface-2`: `default` light 3.28 / 3.42 / 3.11, dark 3.83 / 3.58 / 3.42.
 
 ### Service accents
 

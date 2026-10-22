@@ -21,6 +21,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Thi
 
 ### Changed
 
+- **Dark page and line from vm-brand.** `default` dark `--bg` is `#0A0A0B` and `--border` is `#26262B` (vm-brand `brand.json` `base.dark.page`, `base.dark.line`). New primitives `night-950`, `night-700`. The `graphite` primitives keep their values.
 - `@synthwerk/tokens` 0.3.0: four groups. `groups` and `GroupName` hold `flagship`, `lab`, `ops`, `venture`; `groups.vlm` and `groups.rig` are gone (the package was never published). `@synthwerk/ui-vue` peer range is `^0.3.0`.
 - `@synthwerk/tokens` 0.2.0: the public look (D-41). See `docs/ecosystem-plan/07c-public-presence.md`.
 
