@@ -44,6 +44,10 @@ export const primitives = {
   'graphite-500': '#6B6B84',
   'graphite-400': '#8A8AA0',
 
+  // Dark page and line of vm-brand brand.json (base.dark.page, base.dark.line).
+  'night-950': '#0A0A0B',
+  'night-700': '#26262B',
+
   // Dashboard status and accent colours (Tailwind palette values).
   'emerald-300': '#6EE7B7',
   'emerald-400': '#34D399',
@@ -263,13 +267,13 @@ export const themes = {
         'badge-service-tint': 8
       }
     },
-    // code-context dashboard: #0C0C10 page, #131318 / #18181F panels, #282838 lines, white pill.
+    // vm-brand page #0A0A0B and lines #26262B; code-context dashboard panels #131318 / #18181F, white pill.
     dark: {
       colors: {
-        bg: 'graphite-950',
+        bg: 'night-950',
         surface: 'graphite-900',
         'surface-2': 'graphite-850',
-        border: 'graphite-700',
+        border: 'night-700',
         'border-subtle': 'graphite-750',
         'border-control': 'graphite-500',
         fg: 'zinc-200',
