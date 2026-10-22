@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { contrastRatio, grade, luminance, round2 } from '../../../packages/tokens/src/contrast.ts'
 import { resolveColors } from '../../../packages/tokens/src/css.ts'
 import {
+  brand,
   gradients,
   groupNames,
   type Mode,
@@ -186,26 +187,24 @@ describe('brand doc §6 tables', () => {
 
   it('public presence notes (07c) - computed ratios - equal the doc', () => {
     const r = (a: Primitive, b: Primitive) => round2(contrastRatio(primitives[a], primitives[b]))
-    expect(r('emerald-500', 'graphite-950')).toBe(brandNotes.emeraldOnNight)
-    expect(r('emerald-700', 'zinc-50')).toBe(brandNotes.emeraldPrintOnPaper)
-    expect(r('indigo-500', 'graphite-950')).toBe(brandNotes.indigoOnNight)
-    expect(r('indigo-600', 'zinc-50')).toBe(brandNotes.indigoPrintOnPaper)
-    expect(gradients['edge-light'].map((g) => r(g, 'zinc-50'))).toEqual([
+    expect(r('emerald-500', brand.night)).toBe(brandNotes.emeraldOnNight)
+    expect(r('emerald-700', brand.paper)).toBe(brandNotes.emeraldPrintOnPaper)
+    expect(r('indigo-500', brand.night)).toBe(brandNotes.indigoOnNight)
+    expect(r('indigo-600', brand.paper)).toBe(brandNotes.indigoPrintOnPaper)
+    expect(gradients['edge-light'].map((g) => r(g, brand.paper))).toEqual([
       ...brandNotes.edgeLightStopsOnPaper
     ])
-    expect(gradients['edge-dark'].map((g) => r(g, 'graphite-950'))).toEqual([
+    expect(gradients['edge-dark'].map((g) => r(g, brand.night))).toEqual([
       ...brandNotes.edgeDarkStopsOnNight
     ])
   })
 
   it('edge gradient stops on their page - ratio - at least 3 (graphic, WCAG 1.4.11)', () => {
     for (const stop of gradients['edge-light']) {
-      expect(contrastRatio(primitives[stop], primitives['zinc-50'])).toBeGreaterThanOrEqual(AA_UI)
+      expect(contrastRatio(primitives[stop], primitives[brand.paper])).toBeGreaterThanOrEqual(AA_UI)
     }
     for (const stop of gradients['edge-dark']) {
-      expect(contrastRatio(primitives[stop], primitives['graphite-950'])).toBeGreaterThanOrEqual(
-        AA_UI
-      )
+      expect(contrastRatio(primitives[stop], primitives[brand.night])).toBeGreaterThanOrEqual(AA_UI)
     }
   })
 })
