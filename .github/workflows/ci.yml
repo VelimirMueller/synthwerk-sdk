@@ -1,3 +1,5 @@
+# Fleet library CI (fleet-standard templates/library/public). PRs and manual runs only:
+# no push or tag runs (CI-COST-05, CI-COST-19). Required check context: conclusion.
 name: ci
 
 on:

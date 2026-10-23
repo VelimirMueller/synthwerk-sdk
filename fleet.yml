@@ -10,7 +10,7 @@ exceptions:
     reason: The repo is trunk-only on main until the control repo creates develop (fleet-standard#7).
   - rule: GOV-RS-04
     value: "main ruleset 'main: checks required' with contexts ci / required and feature-doc / check"
-    reason: The main ruleset predates the standard; the control repo replaces it when is_enforced flips (fleet-standard#7).
+    reason: The main ruleset predates the standard and still requires ci / required, which this CI no longer reports, so the owner swaps that context for conclusion at merge until the control repo replaces the ruleset (fleet-standard#7).
   - rule: GOV-ENV-10
     value: no release environment
     reason: The packages are not published to npm yet, so no publish identity exists.

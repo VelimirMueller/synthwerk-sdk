@@ -1,9 +1,10 @@
 # Weekly, grouped, one PR per ecosystem (CI-COST-04).
+# No target-branch: updates go to the default branch. That is main today and becomes
+# develop when the control repo creates it (fleet-standard#7, GOV-REPO-01).
 version: 2
 updates:
   - package-ecosystem: npm
     directory: /
-    target-branch: develop
     schedule:
       interval: weekly
       day: monday
@@ -15,7 +16,6 @@ updates:
         patterns: ["*"]
   - package-ecosystem: github-actions
     directory: /
-    target-branch: develop
     schedule:
       interval: weekly
       day: monday
