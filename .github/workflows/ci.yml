@@ -1,21 +1,117 @@
-# Calls the reusable TypeScript CI of synthwerk-blueprint.
-# Required check for the ruleset: "ci / required".
 name: ci
 
 on:
   pull_request:
-  push:
-    branches: [main]
-    tags: ["v*"]
+    branches: [develop, main]
+    types: [opened, synchronize, reopened, ready_for_review]
+  workflow_dispatch:
+    inputs:
+      e2e:
+        description: Run the e2e stage
+        type: boolean
+        default: false
 
 permissions: {}
 
+defaults:
+  run:
+    shell: bash
+
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  group: ci-${{ github.event.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  ci:
+  changes:
+    if: ${{ !github.event.pull_request.draft }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
     permissions:
       contents: read
-    uses: VelimirMueller/synthwerk-blueprint/.github/workflows/ts-ci.yml@v1
+      pull-requests: read
+    outputs:
+      code: ${{ github.event_name != 'pull_request' || steps.filter.outputs.code == 'true' }}
+    steps:
+      - name: Detect code changes
+        id: filter
+        if: github.event_name == 'pull_request'
+        uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36 # v3.0.2
+        with:
+          predicate-quantifier: every
+          filters: |
+            code:
+              - '!**/*.md'
+              - '!docs/**'
+              - '!LICENSE'
+              - '!.github/ISSUE_TEMPLATE/**'
+
+  lint:
+    needs: changes
+    if: ${{ !failure() && !cancelled() && needs.changes.outputs.code == 'true' }}
+    permissions:
+      contents: read
+    uses: VelimirMueller/fleet-workflows/.github/workflows/_ci-lint.yml@v0.0.1
+    with:
+      stack: node
+      # Default node lint plus the v-html ban of the old blueprint ts-ci (FR-17).
+      command: >-
+        pnpm exec biome ci . &&
+        pnpm exec tsc --noEmit &&
+        ! git grep -n -E '(^|[[:space:]])v-html(=|[[:space:]]|$)' -- '*.vue'
+
+  unit:
+    needs: [changes, lint]
+    if: ${{ !failure() && !cancelled() && needs.changes.outputs.code == 'true' }}
+    permissions:
+      contents: read
+    uses: VelimirMueller/fleet-workflows/.github/workflows/_ci-unit.yml@v0.0.1
+    with:
+      stack: node
+
+  e2e:
+    needs: [changes, unit]
+    if: ${{ !failure() && !cancelled() && github.event_name == 'workflow_dispatch' && inputs.e2e }}
+    permissions:
+      contents: read
+    uses: VelimirMueller/fleet-workflows/.github/workflows/_ci-e2e.yml@v0.0.1
+    with:
+      stack: node
+
+  build:
+    needs: [changes, e2e]
+    if: ${{ !failure() && !cancelled() && needs.changes.outputs.code == 'true' }}
+    permissions:
+      contents: read
+    uses: VelimirMueller/fleet-workflows/.github/workflows/_ci-build.yml@v0.0.1
+    with:
+      stack: node
+      # The root is a private workspace without a version, so the default root pack fails.
+      # Pack every workspace package instead (CI-BUILD-04).
+      command: >-
+        pnpm run --if-present build &&
+        mkdir -p "$RUNNER_TEMP/pack" &&
+        pnpm -r pack --pack-destination "$RUNNER_TEMP/pack"
+
+  conclusion:
+    needs: [changes, lint, unit, e2e, build]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions: {}
+    steps:
+      - name: Fail when a job failed or a required stage was skipped
+        env:
+          CODE: ${{ needs.changes.outputs.code }}
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+          LINT: ${{ needs.lint.result }}
+          UNIT: ${{ needs.unit.result }}
+          BUILD: ${{ needs.build.result }}
+        run: |
+          for r in $RESULTS; do
+            case "$r" in success|skipped) ;; *) echo "::error::a job ended as $r"; exit 1 ;; esac
+          done
+          if [ "$CODE" = "true" ]; then
+            for r in "$LINT" "$UNIT" "$BUILD"; do
+              [ "$r" = "success" ] || { echo "::error::a required stage did not run"; exit 1; }
+            done
+          fi

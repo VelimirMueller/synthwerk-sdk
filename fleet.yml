@@ -1,0 +1,16 @@
+# fleet.yml: tier and visibility of this repo (STANDARD.md). Exceptions: docs/rollout.md.
+tier: library
+visibility: public
+exceptions:
+  - rule: WF-FILE-02
+    value: [feature-doc.yml]
+    reason: The feature-doc check (synthwerk D-16) fails a PR that changes package source without its docs/features page, and the template has no such stage.
+  - rule: GOV-RS-02
+    value: no develop branch
+    reason: The repo is trunk-only on main until the control repo creates develop (fleet-standard#7).
+  - rule: GOV-RS-04
+    value: "main ruleset 'main: checks required' with contexts ci / required and feature-doc / check"
+    reason: The main ruleset predates the standard; the control repo replaces it when is_enforced flips (fleet-standard#7).
+  - rule: GOV-ENV-10
+    value: no release environment
+    reason: The packages are not published to npm yet, so no publish identity exists.
