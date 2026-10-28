@@ -2,6 +2,12 @@
   "$schema": "https://biomejs.dev/schemas/2.5.15/schema.json",
   "extends": ["./tools/biome-config/biome.json"],
   "files": {
-    "includes": ["**", "!!tools/biome-config/biome.json", "!!**/assets/*.svg", "!!assets"]
+    "includes": [
+      "**",
+      "!!tools/biome-config/biome.json",
+      "!!**/assets/*.svg",
+      "!!assets",
+      "!!packages/sdk/src/generated"
+    ]
   }
 }
