@@ -79,9 +79,33 @@ describe('errors', () => {
   })
 
   it('fromFetchFailure - TypeError while online - code network, retryable', () => {
-    const error = fromFetchFailure(new TypeError('fetch failed'))
-    expect(['network', 'offline']).toContain(error.code)
+    const before = Object.getOwnPropertyDescriptor(globalThis, 'navigator')
+    Object.defineProperty(globalThis, 'navigator', { value: { onLine: true }, configurable: true })
+    try {
+      const error = fromFetchFailure(new TypeError('fetch failed'))
+      expect(error.code).toBe('network')
+      expect(error.retryable).toBe(true)
+    } finally {
+      if (before) Object.defineProperty(globalThis, 'navigator', before)
+      else Reflect.deleteProperty(globalThis, 'navigator')
+    }
+  })
+
+  it('fromResponse - HTML 429 from a proxy - code rate_limited, retryable', async () => {
+    const error = await fromResponse(new Response('<p>slow down</p>', { status: 429 }))
+    expect(error.code).toBe('rate_limited')
     expect(error.retryable).toBe(true)
+  })
+
+  it('fromResponse - body status differs from HTTP status - HTTP status wins', async () => {
+    const body = { type: 'x', title: 'x', status: 200, code: 'not_found' }
+    const error = await fromResponse(
+      new Response(JSON.stringify(body), {
+        status: 404,
+        headers: { 'content-type': 'application/problem+json' }
+      })
+    )
+    expect(error.status).toBe(404)
   })
 
   it('fromFetchFailure - aborted signal - code aborted', () => {

@@ -25,6 +25,7 @@ updated: 2026-10-28
 - `createSynthwerk(options)` returns `{ auth, api, llm }`. This is the whole public surface of 0.1.0.
 - Only `token` mode exists. PKCE comes in 0.2.0. TanStack adapters come in M5 (#51).
 - The SDK calls `getToken` before every request. It keeps no token copy after the request.
+- Parallel requests call `getToken({ refresh: false })` in parallel: cache the token in the host.
 - The SDK writes nothing to `localStorage`, `sessionStorage` or cookies (D-03).
 - With no token, a call throws `unauthenticated` before any network call (D-30).
 - On 401 it asks `getToken({ refresh: true })` once and retries once. Parallel 401s share one refresh.
@@ -104,7 +105,7 @@ updated: 2026-10-28
 | Stall timeout | 45 s without bytes (3 missed 15 s pings), option `stallTimeoutMs` |
 | Chat auto-retry | none: the server stores the message, a retry sends it twice |
 | Reconnect | none for chat in M2 (POST, not resumable). `retryable` and `retryAfter` tell the UI when to offer a retry. |
-| `traceparent`, `X-Request-ID` | off by default (`tracing: true`): the edge CORS allows only `Authorization` and `Content-Type` |
+| `traceparent`, `X-Request-ID` | off by default; opt in with `tracing: true`. The edge CORS allows only `Authorization` and `Content-Type` |
 | `Idempotency-Key` | not sent: the gateway and the edge CORS do not support it yet |
 | Bundle size | 6.9 KB gzip (core + token auth + chat, minified ESM); budget 12 KB |
 | Contracts pin | `synthwerk-contracts` `4991c3a737f63d53483d572c2208be17a68a4d77` |
@@ -132,6 +133,7 @@ Every failure is a `SynthwerkError` with `code`, `status`, `title`, `detail`, `t
 | 200 | `stream_stalled` | No bytes for the stall timeout. `error` event. Retryable. |
 | 200 | `stream_interrupted` | Body ended without `done` or `error`. `error` event. Retryable. |
 | 200 | `invalid_event` | Known event name with bad JSON or fields. `error` event, stream ends. |
+| 429 | `rate_limited` | 429 without a problem body (a proxy limit). Retryable. |
 | 5xx, other | `bad_gateway` | Non-JSON error body (a proxy page), or 200 without `text/event-stream`. The body never reaches the error. |
 
 ## Tests
@@ -153,6 +155,8 @@ Every failure is a `SynthwerkError` with `code`, `status`, `title`, `detail`, `t
 - `tests/unit/sdk/errors.test.ts` — `fromResponse - problem+json with code - SynthwerkError.code equals server code`
 - `tests/unit/sdk/errors.test.ts` — `fromResponse - HTML 502 body - code bad_gateway, body not in message`
 - `tests/unit/sdk/errors.test.ts` — `fromFetchFailure - TypeError while navigator is offline - code offline`
+- `tests/unit/sdk/errors.test.ts` — `fromResponse - HTML 429 from a proxy - code rate_limited, retryable`
+- `tests/unit/sdk/errors.test.ts` — `fromResponse - body status differs from HTTP status - HTTP status wins`
 - `tests/unit/sdk/transport.test.ts` — `api - create conversation - POST to <apiUrl>/llm with bearer, typed data`
 - `tests/unit/sdk/codegen.test.ts` — `src/generated/*.ts - regenerated - no drift`
 - `tests/integration/sdk/chat.test.ts` — `chat - mock gateway streams 20 tokens then done - text equals joined tokens`

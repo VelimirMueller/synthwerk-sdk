@@ -39,7 +39,10 @@ export async function* readSse(
       timer = setTimeout(() => reject(clientError('stream_stalled')), options.stallTimeoutMs)
     })
     try {
-      return await Promise.race([reader.read(), stalled])
+      const next = reader.read()
+      // A read that loses the race may reject later (cancel); keep that rejection handled.
+      next.catch(() => undefined)
+      return await Promise.race([next, stalled])
     } finally {
       clearTimeout(timer)
     }

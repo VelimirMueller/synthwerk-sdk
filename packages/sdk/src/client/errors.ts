@@ -12,6 +12,7 @@ export type ClientErrorCode =
   | 'stream_interrupted'
   | 'invalid_event'
   | 'bad_gateway'
+  | 'rate_limited'
 
 /** A client code, a known server code or any other server code (clients must accept unknown codes). */
 export type ErrorCode =
@@ -44,7 +45,8 @@ const RETRYABLE = new Set<string>([
   'stream_interrupted',
   'bad_gateway',
   'model_unavailable',
-  'too_many_streams'
+  'too_many_streams',
+  'rate_limited'
 ])
 
 export class SynthwerkError extends Error {
@@ -85,7 +87,8 @@ const TITLES: Record<ClientErrorCode, string> = {
   stream_stalled: 'Stream stalled',
   stream_interrupted: 'Stream interrupted',
   invalid_event: 'Invalid stream event',
-  bad_gateway: 'Bad gateway'
+  bad_gateway: 'Bad gateway',
+  rate_limited: 'Rate limited'
 }
 
 export function clientError(
@@ -102,7 +105,11 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 const CODE = /^[a-z][a-z0-9_]*$/
 
-/** A SynthwerkError from a problem object, or `null` when the value is not a problem. */
+/**
+ * A SynthwerkError from a problem object, or `null` when the value is not a problem.
+ * `status` is the HTTP status and wins; the body `status` counts only when there is none
+ * (an SSE `error` event, where HTTP stays 200).
+ */
 export function fromProblem(
   value: unknown,
   status: number | null,
@@ -111,7 +118,7 @@ export function fromProblem(
   if (!isRecord(value)) return null
   const { code, title, detail, trace_id: traceId } = value
   if (typeof code !== 'string' || !CODE.test(code) || code.length > 64) return null
-  const problemStatus = typeof value.status === 'number' ? value.status : status
+  const problemStatus = status ?? (typeof value.status === 'number' ? value.status : null)
   return new SynthwerkError({
     code,
     title: typeof title === 'string' ? title.slice(0, 128) : code,
@@ -146,17 +153,17 @@ export async function fromResponse(response: Response): Promise<SynthwerkError> 
   } else {
     await response.body?.cancel().catch(() => undefined)
   }
-  const code: ErrorCode =
+  const code: ClientErrorCode | 'forbidden' =
     response.status === 401
       ? 'unauthenticated'
       : response.status === 403
         ? 'forbidden'
         : response.status === 429
-          ? 'too_many_streams'
+          ? 'rate_limited'
           : 'bad_gateway'
   return new SynthwerkError({
     code,
-    title: code === 'bad_gateway' ? TITLES.bad_gateway : code,
+    title: code === 'forbidden' ? 'Forbidden' : TITLES[code],
     status: response.status,
     ...(retryAfter === undefined ? {} : { retryAfter })
   })

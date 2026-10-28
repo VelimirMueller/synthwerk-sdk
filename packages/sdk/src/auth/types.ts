@@ -1,7 +1,7 @@
 /**
  * Hands the SDK a Bearer token for one request. The host app or the widget owns the token
  * (D-13: the widget gets it from its host through postMessage).
- * - `refresh: false`: a cached token is fine.
+ * - `refresh: false`: a cached token is fine. Parallel requests call this in parallel: cache it.
  * - `refresh: true`: the API answered 401 with the last token; return a new one if you can.
  * - Return `null` (or an empty string) when there is no session: the call fails with
  *   `unauthenticated` before any network call.
