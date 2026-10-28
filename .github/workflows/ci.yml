@@ -52,7 +52,7 @@ jobs:
     if: ${{ !failure() && !cancelled() && needs.changes.outputs.code == 'true' }}
     permissions:
       contents: read
-    uses: VelimirMueller/fleet-workflows/.github/workflows/_ci-lint.yml@v0.0.1
+    uses: VelimirMueller/fleet-workflows/.github/workflows/_ci-lint.yml@v0.0.2
     with:
       stack: node
       # Default node lint plus the v-html ban of the old blueprint ts-ci (FR-17).
@@ -66,7 +66,7 @@ jobs:
     if: ${{ !failure() && !cancelled() && needs.changes.outputs.code == 'true' }}
     permissions:
       contents: read
-    uses: VelimirMueller/fleet-workflows/.github/workflows/_ci-unit.yml@v0.0.1
+    uses: VelimirMueller/fleet-workflows/.github/workflows/_ci-unit.yml@v0.0.2
     with:
       stack: node
 
@@ -75,7 +75,7 @@ jobs:
     if: ${{ !failure() && !cancelled() && github.event_name == 'workflow_dispatch' && inputs.e2e }}
     permissions:
       contents: read
-    uses: VelimirMueller/fleet-workflows/.github/workflows/_ci-e2e.yml@v0.0.1
+    uses: VelimirMueller/fleet-workflows/.github/workflows/_ci-e2e.yml@v0.0.2
     with:
       stack: node
 
@@ -84,7 +84,7 @@ jobs:
     if: ${{ !failure() && !cancelled() && needs.changes.outputs.code == 'true' }}
     permissions:
       contents: read
-    uses: VelimirMueller/fleet-workflows/.github/workflows/_ci-build.yml@v0.0.1
+    uses: VelimirMueller/fleet-workflows/.github/workflows/_ci-build.yml@v0.0.2
     with:
       stack: node
       # The root is a private workspace without a version, so the default root pack fails.
