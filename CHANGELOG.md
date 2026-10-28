@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to the Synthwerk SDK. The version is the version of `@synthwerk/tokens` until a second package exists.
+All notable changes to the Synthwerk SDK. Each package has its own version; an entry names the package and version it changes. Release headings below 0.3.0 are `@synthwerk/tokens` versions.
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). This repo does not use Semantic Versioning strictly: versions below 1.0.0 may change the API.
 
@@ -8,6 +8,11 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Thi
 
 ### Added
 
+- **`@synthwerk/sdk` 0.1.0 (#35).** Framework-free core for the browser and Node 24. Not on npm yet. See `docs/features/sdk-core.md`.
+  - Token-mode sign-in: the host hands in `getToken`. The SDK stores no token.
+  - Typed `openapi-fetch` clients for identity and llm, generated from `synthwerk-contracts` `4991c3a`.
+  - `sw.llm.chat()` streams `delta`, `usage`, `done` and `error` events.
+  - One `SynthwerkError` maps 401, quota, offline, stall and proxy errors.
 - **Four groups (vm-brand B-52).** `data-group="flagship|lab|ops|venture"`. Ops is magenta `#EE4FFF` (B-34), venture is amber (B-42). The `default` theme values come from vm-brand `brand.json` through the generated `packages/tokens/src/brand-groups.json` (vm-brand `scripts/group-tokens.py`; vm-brand CI fails on drift). New exports: `deprecatedGroupAliases`, `resolveGroupName`, `contrastAccents`, `groupStyleNames`, `groupDisplayFonts`, `plainGroupStyle`, `primitiveForHex`, `groupSelector`. `tokens.json` gets `groups.<g>.style` and `groupAliases`.
 - **Group style (B-46).** Every group rule sets `--group-font-display`, `--group-corner`, `--group-ornament` and `--group-tracking`. Venture: Cinzel, `0.15`, `1`, `0.02em`. Other groups keep the D-41 look.
 - Primitives `magenta-400`, `fuchsia-300`, `fuchsia-700`, `fuchsia-800`.

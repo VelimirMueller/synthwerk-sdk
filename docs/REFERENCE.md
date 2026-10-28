@@ -36,8 +36,15 @@ packages/tokens/
 packages/ui-vue/
   src/        components/*.ts (render functions), ui.css (tokens only), index.ts
   scripts/    build.ts (copies ui.css to dist)
+packages/sdk/
+  src/        index.ts (public surface), client/ (create, transport, errors), auth/ (token mode),
+              llm/ (chat, sse, events), generated/ (openapi-typescript output, never edited)
+  contracts/  synthwerk-contracts specs at the pinned commit + contracts.lock.json
+  scripts/    codegen.ts (specs -> src/generated; --sync copies from a contracts clone)
 tests/unit/tokens/   contrast, CSS structure, token layers, theme rules, assets
 tests/unit/ui-vue/   components, tokens-only CSS, text contrast per theme, mode and group
+tests/unit/sdk/      auth, transport, errors, SSE and chat, codegen drift
+tests/integration/sdk/  chat over real HTTP against tests/support/mock-gateway.ts
 tools/biome-config/  vendored copy of @synthwerk/biome-config (see its README)
 assets/banner/       README banner (synthwerk/scripts/make-banner.py)
 ```

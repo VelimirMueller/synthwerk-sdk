@@ -1,0 +1,366 @@
+openapi: 3.1.0
+info:
+  title: Synthwerk identity
+  version: 0.1.0
+  summary: The caller, orgs and roles. The M2 stubs of synthwerk-identity.
+  description: |
+    The org contract of synthwerk-identity (M2 spec #29, D-44).
+    - An org is a Zitadel org. The vocabulary is `org` everywhere, never `tenant`.
+    - Org roles are `owner`, `admin` and `member`. The platform role is `operator`. It sits outside every org.
+    - An org the caller does not belong to answers 404, not 403. The API does not leak that it exists.
+    - Errors are RFC 9457 `application/problem+json` with a stable `code`.
+    - Members and role changes (`/v1/orgs/{orgId}/members`) follow in #29.
+  license:
+    name: MIT
+    identifier: MIT
+  contact:
+    name: Velimir Mueller
+    url: https://github.com/VelimirMueller/synthwerk-contracts
+tags:
+  - name: me
+    description: The signed-in caller.
+  - name: orgs
+    description: Orgs the caller belongs to.
+security:
+  - bearer: []
+paths:
+  /v1/me:
+    get:
+      operationId: identity.getMe
+      summary: Get the caller
+      description: The subject, the org and the roles of the token.
+      tags: [me]
+      security:
+        - bearer: []
+      responses:
+        "200":
+          description: The caller.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Me"
+              example:
+                subject: "283746192837461928"
+                org:
+                  id: 0199f3a0-5b6c-7d8e-9f0a-1b2c3d4e5f60
+                  name: Synthwerk
+                  slug: synthwerk
+                  created_at: "2026-10-23T08:00:00Z"
+                roles: [owner, operator]
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+  /v1/orgs:
+    get:
+      operationId: identity.listOrgs
+      summary: List orgs
+      description: Orgs the caller is a member of. An operator sees every org. Cursor paging, max 100 per page.
+      tags: [orgs]
+      security:
+        - bearer: []
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          description: Page size.
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
+        - name: cursor
+          in: query
+          required: false
+          description: The `next_cursor` of the previous page.
+          schema:
+            type: string
+            maxLength: 256
+      responses:
+        "200":
+          description: One page of orgs.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrgPage"
+              example:
+                items:
+                  - id: 0199f3a0-5b6c-7d8e-9f0a-1b2c3d4e5f60
+                    name: Synthwerk
+                    slug: synthwerk
+                    created_at: "2026-10-23T08:00:00Z"
+        "400":
+          $ref: "#/components/responses/InvalidRequest"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+    post:
+      operationId: identity.createOrg
+      summary: Create an org
+      description: Creates an org and its Zitadel org. The caller becomes its `owner`. Emits `dev.synthwerk.identity.org.created.v1`.
+      tags: [orgs]
+      security:
+        - bearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateOrgRequest"
+            example:
+              name: Acme Labs
+              slug: acme-labs
+      responses:
+        "201":
+          description: Org created.
+          headers:
+            Location:
+              description: Path of the new org.
+              schema:
+                type: string
+                maxLength: 128
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Org"
+              example:
+                id: 0199f3a1-2c3d-7e4f-8a5b-6c7d8e9f0a1b
+                name: Acme Labs
+                slug: acme-labs
+                created_at: "2026-10-23T08:30:00Z"
+        "400":
+          $ref: "#/components/responses/InvalidRequest"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          $ref: "#/components/responses/Conflict"
+  /v1/orgs/{orgId}:
+    parameters:
+      - $ref: "#/components/parameters/OrgId"
+    get:
+      operationId: identity.getOrg
+      summary: Get an org
+      description: Org detail. Needs a membership in the org, or the role `operator`.
+      tags: [orgs]
+      security:
+        - bearer: []
+      responses:
+        "200":
+          description: The org.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Org"
+              example:
+                id: 0199f3a0-5b6c-7d8e-9f0a-1b2c3d4e5f60
+                name: Synthwerk
+                slug: synthwerk
+                created_at: "2026-10-23T08:00:00Z"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "404":
+          $ref: "#/components/responses/NotFound"
+components:
+  securitySchemes:
+    bearer:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Zitadel access token. The subject, the org and the roles come from its claims.
+  parameters:
+    OrgId:
+      name: orgId
+      in: path
+      required: true
+      description: Org id.
+      schema:
+        type: string
+        format: uuid
+        maxLength: 36
+  responses:
+    InvalidRequest:
+      description: The body or a parameter is not valid. Code `invalid_request`.
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+          example:
+            type: https://schemas.synthwerk.dev/problems/invalid_request
+            title: Invalid request
+            status: 400
+            code: invalid_request
+            detail: slug must match ^[a-z][a-z0-9-]*$.
+    Unauthenticated:
+      description: No token, bad signature, expired, wrong issuer or audience. Code `unauthenticated`.
+      headers:
+        WWW-Authenticate:
+          description: Always `Bearer`.
+          schema:
+            type: string
+            maxLength: 256
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+          example:
+            type: https://schemas.synthwerk.dev/problems/unauthenticated
+            title: Unauthenticated
+            status: 401
+            code: unauthenticated
+    Forbidden:
+      description: The caller's role does not allow the call. Code `forbidden`. The body is generic.
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+          example:
+            type: https://schemas.synthwerk.dev/problems/forbidden
+            title: Forbidden
+            status: 403
+            code: forbidden
+    NotFound:
+      description: Unknown org, or an org the caller does not belong to. Same body in both cases. Code `not_found`.
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+          example:
+            type: https://schemas.synthwerk.dev/problems/not_found
+            title: Not found
+            status: 404
+            code: not_found
+    Conflict:
+      description: The slug is taken. Code `slug_taken`.
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+          example:
+            type: https://schemas.synthwerk.dev/problems/slug_taken
+            title: Slug taken
+            status: 409
+            code: slug_taken
+  schemas:
+    Role:
+      type: string
+      enum: [owner, admin, member, operator]
+      description: |
+        - `owner`, `admin`, `member`: org roles.
+        - `operator`: platform role. It is never an org membership.
+    Org:
+      type: object
+      additionalProperties: false
+      required: [id, name, slug, created_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+          maxLength: 36
+        name:
+          type: string
+          minLength: 1
+          maxLength: 128
+          description: Display name.
+        slug:
+          type: string
+          minLength: 2
+          maxLength: 64
+          pattern: "^[a-z][a-z0-9-]*$"
+          description: Unique, URL-safe name.
+        created_at:
+          type: string
+          format: date-time
+          maxLength: 40
+    OrgPage:
+      type: object
+      additionalProperties: false
+      required: [items]
+      properties:
+        items:
+          type: array
+          maxItems: 100
+          items:
+            $ref: "#/components/schemas/Org"
+        next_cursor:
+          type: string
+          maxLength: 256
+          description: Cursor of the next page. Absent on the last page.
+    CreateOrgRequest:
+      type: object
+      additionalProperties: false
+      required: [name, slug]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 128
+        slug:
+          type: string
+          minLength: 2
+          maxLength: 64
+          pattern: "^[a-z][a-z0-9-]*$"
+    Me:
+      type: object
+      additionalProperties: false
+      required: [subject, org, roles]
+      properties:
+        subject:
+          type: string
+          minLength: 1
+          maxLength: 128
+          description: Token `sub`. Never an email.
+        org:
+          $ref: "#/components/schemas/Org"
+        roles:
+          type: array
+          maxItems: 4
+          uniqueItems: true
+          description: Roles of the caller in `org`, plus `operator` for a platform operator.
+          items:
+            $ref: "#/components/schemas/Role"
+    Problem:
+      type: object
+      additionalProperties: false
+      required: [type, title, status, code]
+      description: |
+        RFC 9457 problem details with the stable Synthwerk `code`.
+        Clients branch on `code`, never on `title` or `detail`, and must accept unknown codes.
+
+        | Code | Status | Cause |
+        |---|---|---|
+        | `invalid_request` | 400 | Body or parameter not valid. |
+        | `unauthenticated` | 401 | Token missing or not valid. |
+        | `forbidden` | 403 | Role does not allow the call. |
+        | `not_found` | 404 | Unknown org or no membership. |
+        | `slug_taken` | 409 | Another org has the slug. |
+      properties:
+        type:
+          type: string
+          format: uri
+          maxLength: 256
+          description: "`https://schemas.synthwerk.dev/problems/<code>`."
+        title:
+          type: string
+          maxLength: 128
+          description: Short summary of the problem type. Same for every instance.
+        status:
+          type: integer
+          minimum: 100
+          maximum: 599
+        code:
+          type: string
+          maxLength: 64
+          pattern: "^[a-z][a-z0-9_]*$"
+          description: Stable machine code, for example `not_found`.
+        detail:
+          type: string
+          maxLength: 512
+          description: Explanation for this instance. No secrets, no personal data.
+        instance:
+          type: string
+          maxLength: 256
+          description: URI of this instance, for example the request path.
+        trace_id:
+          type: string
+          maxLength: 32
+          pattern: "^[0-9a-f]{32}$"
+          description: W3C trace id of the request, for support.
