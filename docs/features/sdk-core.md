@@ -183,6 +183,7 @@ Every failure is a `SynthwerkError` with `code`, `status`, `title`, `detail`, `t
 - `tests/unit/sdk/widget-token.test.ts` — `201 body no token - throws bad_gateway 502`
 - `tests/unit/sdk/vision.test.ts` — `classify - POST <apiUrl>/vision with the widget bearer and a multipart image part`
 - `tests/unit/sdk/vision.test.ts` — `upload - 201 - typed stored image; 507 - FastAPI error body`
+- `tests/unit/sdk/url.test.ts` — `100 000 slashes then a letter - linear time, nothing removed`
 - `tests/unit/sdk/transport.test.ts` — `api - create conversation - POST to <apiUrl>/llm with bearer, typed data`
 - `tests/unit/sdk/codegen.test.ts` — `src/generated/*.ts - regenerated - no drift`
 - `tests/integration/sdk/chat.test.ts` — `chat - mock gateway streams 20 tokens then done - text equals joined tokens`
@@ -195,5 +196,6 @@ Every failure is a `SynthwerkError` with `code`, `status`, `title`, `detail`, `t
 
 | Date | Change |
 |---|---|
+| 2026-10-30 | Trailing slashes of service URLs are trimmed with a loop, not a regex (CodeQL polynomial ReDoS on many `/`). |
 | 2026-10-30 | 0.2.0 (#18, #19): `requestWidgetToken()`, typed `quota` on `SynthwerkError`, `sw.api.vision`. Contracts pin moved. |
 | 2026-10-28 | First version (#35): token mode, typed client from contracts `4991c3a`, chat stream. |
