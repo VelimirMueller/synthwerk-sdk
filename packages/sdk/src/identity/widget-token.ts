@@ -4,6 +4,7 @@
 // needs the user token. The caller keeps the tokens; the SDK stores neither.
 
 import { clientError, fromFetchFailure } from '../client/errors.ts'
+import { trimSlash } from '../client/url.ts'
 import type { components as IdentityComponents } from '../generated/identity.ts'
 
 /** The 201 body of the widget-token route. */
@@ -59,7 +60,7 @@ function readGrant(body: unknown): WidgetTokenGrant | null {
  */
 export async function requestWidgetToken(options: WidgetTokenRequest): Promise<WidgetTokenResult> {
   const send = options.fetch ?? ((input: Request) => globalThis.fetch(input))
-  const base = options.identityUrl.replace(/\/+$/, '')
+  const base = trimSlash(options.identityUrl)
   const url = `${base}/v1/apps/${encodeURIComponent(options.appId)}/widget-tokens`
   const request = new Request(url, {
     method: 'POST',

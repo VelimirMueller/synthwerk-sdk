@@ -8,6 +8,7 @@ import { type ChatOptions, type ChatRequest, chat } from '../llm/chat.ts'
 import type { ChatEvent } from '../llm/events.ts'
 import { visionBody } from '../vision/body.ts'
 import { createTransport } from './transport.ts'
+import { trimSlash } from './url.ts'
 
 export interface SynthwerkOptions {
   /** Edge base URL, for example `https://api.example.com`. Services sit under `/identity`, `/llm` and `/vision`. */
@@ -43,10 +44,6 @@ export interface Synthwerk {
     /** Sends one message and streams the answer. See ChatEvent. */
     chat(request: ChatRequest, options?: ChatOptions): AsyncIterable<ChatEvent>
   }
-}
-
-function trimSlash(url: string): string {
-  return url.replace(/\/+$/, '')
 }
 
 export function createSynthwerk(options: SynthwerkOptions): Synthwerk {
