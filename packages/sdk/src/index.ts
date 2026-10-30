@@ -1,14 +1,30 @@
-// @synthwerk/sdk 0.2.0: the stable public surface. Everything else is internal.
+// @synthwerk/sdk 0.3.0: the stable public surface. Everything else is internal.
+
+export {
+  type AuthSnapshot,
+  type AuthStatus,
+  createSynthwerkApp,
+  type SynthwerkApp,
+  type SynthwerkAppOptions
+} from './app/app.ts'
 export type { Auth, AuthOptions, AuthUser, GetToken, TokenAuthOptions } from './auth/types.ts'
 export { createSynthwerk, type Synthwerk, type SynthwerkOptions } from './client/create.ts'
 export {
   type ClientErrorCode,
   type ErrorCode,
+  errorFromResult,
   isSynthwerkError,
   type QuotaExceeded,
   SynthwerkError,
   type SynthwerkErrorInit
 } from './client/errors.ts'
+export {
+  createWidgetSession,
+  type GetUserToken,
+  WIDGET_TOKEN_EXPIRY_MARGIN_S,
+  type WidgetSession,
+  type WidgetSessionOptions
+} from './identity/widget-session.ts'
 export {
   requestWidgetToken,
   type WidgetToken,
@@ -18,6 +34,32 @@ export {
 } from './identity/widget-token.ts'
 export type { ChatOptions, ChatRequest, SendMessageRequest } from './llm/chat.ts'
 export type { ChatEvent, FinishReason, Usage } from './llm/events.ts'
+export {
+  type ChatMessage,
+  type ChatMessageStatus,
+  type ChatSnapshot,
+  type ChatSource,
+  type ChatStore,
+  type ChatStoreOptions,
+  createChatStore
+} from './state/chat-store.ts'
+export {
+  type ClassifySnapshot,
+  type ClassifySource,
+  type ClassifyStatus,
+  type ClassifyStore,
+  createClassifyStore
+} from './state/classify-store.ts'
+export { type ErrorKind, type ErrorState, toErrorState } from './state/error-state.ts'
+export {
+  classifyMutation,
+  conversationQuery,
+  meQuery,
+  type SynthwerkMutation,
+  type SynthwerkQuery,
+  synthwerkKeys
+} from './state/queries.ts'
+export type { Readable } from './state/store.ts'
 
 import type {
   components as IdentityComponents,

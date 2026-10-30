@@ -1,5 +1,13 @@
 {
   "extends": "./tsconfig.base.json",
-  "compilerOptions": { "noEmit": true },
-  "include": ["packages/*/src", "packages/*/scripts", "tests", "vitest.config.ts"]
+  "compilerOptions": {
+    "noEmit": true,
+    "paths": {
+      "@synthwerk/sdk": ["./packages/sdk/src/index.ts"],
+      "@synthwerk/react": ["./packages/react/src/index.ts"],
+      "@synthwerk/vue": ["./packages/vue/src/index.ts"]
+    },
+    "jsx": "react-jsx"
+  },
+  "include": ["packages/*/src", "packages/*/scripts", "tests", "examples", "vitest.config.ts"]
 }

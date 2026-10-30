@@ -14,17 +14,18 @@ updated: 2026-10-30
 # SDK core (sign-in, typed client, chat stream)
 
 > **In 30 seconds**
-> - `@synthwerk/sdk` 0.2.0 is the framework-free core for the browser and Node 24.
+> - `@synthwerk/sdk` 0.3.0 is the framework-free core for the browser and Node 24.
 > - Token mode: the host page or the widget hands in a token getter. The SDK never stores a token.
 > - `sw.api` is a typed client generated from a pinned `synthwerk-contracts` commit.
 > - `sw.llm.chat()` streams an answer as typed events and maps 401, quota, offline and stall errors.
 > - `requestWidgetToken()` trades a user token for a widget token. `sw.api.vision` classifies and uploads images.
 > - The chat and vision widgets build on this package. They have no own HTTP, auth or SSE code.
+> - 0.3.0 adds the framework-free state under the React and Vue adapters: see [sdk-adapters.md](sdk-adapters.md).
 
 ## What it does
 
-- `createSynthwerk(options)` returns `{ auth, api, llm }`. With `requestWidgetToken()` this is the whole public surface of 0.2.0.
-- Only `token` mode exists. PKCE comes in 0.2.0. TanStack adapters come in M5 (#51).
+- `createSynthwerk(options)` returns `{ auth, api, llm }`. With `requestWidgetToken()` this is the client surface. The state exports of 0.3.0 are in [sdk-adapters.md](sdk-adapters.md).
+- Only `token` mode exists. PKCE comes later. The React and Vue adapters (#51) are in [sdk-adapters.md](sdk-adapters.md).
 - The SDK calls `getToken` before every request. It keeps no token copy after the request.
 - Parallel requests call `getToken({ refresh: false })` in parallel: cache the token in the host.
 - The SDK writes nothing to `localStorage`, `sessionStorage` or cookies (D-03).
@@ -54,6 +55,8 @@ updated: 2026-10-30
 | `Conversation`, `Message`, `Problem`, `Me`, `Org`, `Role` | type | Contract schemas. |
 | `Classification`, `ScoredLabel`, `ScoredTopic`, `Correction`, `VisionImage`, `VisionError` | type | Vision contract schemas. |
 | `LlmPaths`, `IdentityPaths`, `VisionPaths` | type | Generated OpenAPI paths. |
+| `errorFromResult(body, response)` | function | The SynthwerkError of a non-2xx `sw.api` result. Status mapping for FastAPI and proxy bodies. |
+| `createWidgetSession`, `createSynthwerkApp`, `createChatStore`, `createClassifyStore`, `toErrorState`, `meQuery`, `conversationQuery`, `classifyMutation`, `synthwerkKeys` | function | Adapter core (0.3.0). See [sdk-adapters.md](sdk-adapters.md). |
 
 | `sw.` member | Result |
 |---|---|
@@ -116,7 +119,7 @@ updated: 2026-10-30
 
 | Rule | Value |
 |---|---|
-| Auth modes | `token` only (PKCE in 0.2.0) |
+| Auth modes | `token` only |
 | Token storage | memory of one request; never storage or cookies |
 | 401 retry | one refresh, one retry; parallel 401s share one refresh |
 | Stall timeout | 45 s without bytes (3 missed 15 s pings), option `stallTimeoutMs` |
@@ -196,6 +199,7 @@ Every failure is a `SynthwerkError` with `code`, `status`, `title`, `detail`, `t
 
 | Date | Change |
 |---|---|
+| 2026-10-30 | 0.3.0 (#51): adapter core (widget session, app, chat and classify stores, error states, TanStack query options), `errorFromResult()`. |
 | 2026-10-30 | Trailing slashes of service URLs are trimmed with a loop, not a regex (CodeQL polynomial ReDoS on many `/`). |
 | 2026-10-30 | 0.2.0 (#18, #19): `requestWidgetToken()`, typed `quota` on `SynthwerkError`, `sw.api.vision`. Contracts pin moved. |
 | 2026-10-28 | First version (#35): token mode, typed client from contracts `4991c3a`, chat stream. |

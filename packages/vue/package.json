@@ -1,0 +1,54 @@
+{
+  "name": "@synthwerk/vue",
+  "version": "0.1.0",
+  "description": "Vue 3.5 adapter of the Synthwerk SDK: one plugin, composables for sign-in, chat stream and vision classify. No UI",
+  "license": "MIT",
+  "author": "Velimir Mueller",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/VelimirMueller/synthwerk-sdk.git",
+    "directory": "packages/vue"
+  },
+  "homepage": "https://github.com/VelimirMueller/synthwerk-sdk/tree/main/packages/vue#readme",
+  "bugs": {
+    "url": "https://github.com/VelimirMueller/synthwerk-sdk/issues"
+  },
+  "keywords": [
+    "synthwerk",
+    "vue",
+    "sdk",
+    "chat",
+    "streaming"
+  ],
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "prepublishOnly": "pnpm run build"
+  },
+  "dependencies": {
+    "@synthwerk/sdk": "workspace:^"
+  },
+  "peerDependencies": {
+    "vue": "^3.5.0"
+  },
+  "devDependencies": {
+    "vue": "3.5.43"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}
