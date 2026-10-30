@@ -12,7 +12,9 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "build": "pnpm -r run build",
-    "check": "pnpm lint && pnpm typecheck && pnpm test && pnpm build"
+    "check": "pnpm lint && pnpm typecheck && pnpm test && pnpm build",
+    "pack:all": "pnpm -r pack --pack-destination .pack",
+    "release": "pnpm check && pnpm -r publish --access public"
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.15",

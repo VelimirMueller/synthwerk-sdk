@@ -3,16 +3,18 @@ import { createTokenAuth } from '../auth/token.ts'
 import type { Auth, AuthOptions } from '../auth/types.ts'
 import type { paths as IdentityPaths } from '../generated/identity.ts'
 import type { paths as LlmPaths } from '../generated/llm.ts'
+import type { paths as VisionPaths } from '../generated/vision.ts'
 import { type ChatOptions, type ChatRequest, chat } from '../llm/chat.ts'
 import type { ChatEvent } from '../llm/events.ts'
+import { visionBody } from '../vision/body.ts'
 import { createTransport } from './transport.ts'
 
 export interface SynthwerkOptions {
-  /** Edge base URL, for example `https://api.example.com`. Services sit under `/identity` and `/llm`. */
+  /** Edge base URL, for example `https://api.example.com`. Services sit under `/identity`, `/llm` and `/vision`. */
   apiUrl: string
   auth: AuthOptions
-  /** Per-service base URLs. Default: `<apiUrl>/identity` and `<apiUrl>/llm` (the edge routes). */
-  services?: { identity?: string; llm?: string }
+  /** Per-service base URLs. Default: `<apiUrl>/identity`, `<apiUrl>/llm` and `<apiUrl>/vision` (the edge routes). */
+  services?: { identity?: string; llm?: string; vision?: string }
   /** Custom fetch, for tests or a host runtime. Default: `globalThis.fetch`. */
   fetch?: (input: Request) => Promise<Response>
   /** Send `traceparent` and `X-Request-ID`. Default `false`: the edge CORS does not allow them yet. */
@@ -29,6 +31,13 @@ export interface Synthwerk {
   api: {
     identity: Client<IdentityPaths>
     llm: Client<LlmPaths>
+    /**
+     * Vision. A body with a Blob (`{ image }`) goes as `multipart/form-data`, other bodies as
+     * JSON. Classification and upload need a widget token; the admin routes need the vision
+     * admin token and are for servers only. Errors are FastAPI `{detail}` bodies: branch on
+     * the status.
+     */
+    vision: Client<VisionPaths>
   }
   llm: {
     /** Sends one message and streams the answer. See ChatEvent. */
@@ -50,6 +59,7 @@ export function createSynthwerk(options: SynthwerkOptions): Synthwerk {
   const apiUrl = trimSlash(options.apiUrl)
   const identityUrl = trimSlash(options.services?.identity ?? `${apiUrl}/identity`)
   const llmUrl = trimSlash(options.services?.llm ?? `${apiUrl}/llm`)
+  const visionUrl = trimSlash(options.services?.vision ?? `${apiUrl}/vision`)
 
   return {
     auth: {
@@ -61,7 +71,12 @@ export function createSynthwerk(options: SynthwerkOptions): Synthwerk {
     },
     api: {
       identity: createClient<IdentityPaths>({ baseUrl: identityUrl, fetch: send }),
-      llm: createClient<LlmPaths>({ baseUrl: llmUrl, fetch: send })
+      llm: createClient<LlmPaths>({ baseUrl: llmUrl, fetch: send }),
+      vision: createClient<VisionPaths>({
+        baseUrl: visionUrl,
+        fetch: send,
+        bodySerializer: visionBody
+      })
     },
     llm: {
       chat: (request, chatOptions) => chat(send, llmUrl, request, chatOptions)

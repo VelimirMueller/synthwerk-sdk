@@ -8,6 +8,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Thi
 
 ### Added
 
+- **`@synthwerk/sdk` 0.2.0 (#18, #19).**
+  - `requestWidgetToken()`: trades a user token for a widget token (identity `POST /v1/apps/{appId}/widget-tokens`).
+  - `SynthwerkError.quota`: the typed `quota` member (`scope` `user` or `org`, `limit`, `resets_at`) of a `quota_exhausted` problem.
+  - `sw.api.vision`: typed client for vision classification, upload and the label-set admin routes. A Blob body goes as `multipart/form-data`.
+  - Contracts pin moved to `8e2d7c4` (go/v0.11.0). Codegen types `format: binary` as `Blob`.
+  - `pnpm release` publishes the three packages in one step (not run yet).
 - **`@synthwerk/sdk` 0.1.0 (#35).** Framework-free core for the browser and Node 24. Not on npm yet. See `docs/features/sdk-core.md`.
   - Token-mode sign-in: the host hands in `getToken`. The SDK stores no token.
   - Typed `openapi-fetch` clients for identity and llm, generated from `synthwerk-contracts` `4991c3a`.

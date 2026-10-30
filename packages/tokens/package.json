@@ -9,6 +9,10 @@
     "url": "git+https://github.com/VelimirMueller/synthwerk-sdk.git",
     "directory": "packages/tokens"
   },
+  "homepage": "https://github.com/VelimirMueller/synthwerk-sdk/tree/main/packages/tokens#readme",
+  "bugs": {
+    "url": "https://github.com/VelimirMueller/synthwerk-sdk/issues"
+  },
   "type": "module",
   "sideEffects": [
     "*.css"
@@ -33,7 +37,8 @@
     "fonts": "node scripts/fonts.ts",
     "demo": "pnpm run build && node scripts/fonts.ts && node scripts/serve.ts",
     "wordmark": "node scripts/outline-wordmark.ts",
-    "screenshots": "pnpm run build && node scripts/fonts.ts && node scripts/screenshots.ts"
+    "screenshots": "pnpm run build && node scripts/fonts.ts && node scripts/screenshots.ts",
+    "prepublishOnly": "pnpm run build"
   },
   "peerDependencies": {
     "tailwindcss": "^4.3.3"
