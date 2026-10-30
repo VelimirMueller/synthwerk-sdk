@@ -9,6 +9,10 @@
     "url": "git+https://github.com/VelimirMueller/synthwerk-sdk.git",
     "directory": "packages/ui-vue"
   },
+  "homepage": "https://github.com/VelimirMueller/synthwerk-sdk/tree/main/packages/ui-vue#readme",
+  "bugs": {
+    "url": "https://github.com/VelimirMueller/synthwerk-sdk/issues"
+  },
   "type": "module",
   "sideEffects": [
     "*.css"
@@ -25,7 +29,8 @@
     "README.md"
   ],
   "scripts": {
-    "build": "tsc -p tsconfig.build.json && node scripts/build.ts"
+    "build": "tsc -p tsconfig.build.json && node scripts/build.ts",
+    "prepublishOnly": "pnpm run build"
   },
   "peerDependencies": {
     "@synthwerk/tokens": "^0.3.0",

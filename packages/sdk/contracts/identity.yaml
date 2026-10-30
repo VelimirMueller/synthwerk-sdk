@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Synthwerk identity
-  version: 0.1.0
+  version: 0.7.1
   summary: The caller, orgs and roles. The M2 stubs of synthwerk-identity.
   description: |
     The org contract of synthwerk-identity (M2 spec #29, D-44).
@@ -9,7 +9,16 @@ info:
     - Org roles are `owner`, `admin` and `member`. The platform role is `operator`. It sits outside every org.
     - An org the caller does not belong to answers 404, not 403. The API does not leak that it exists.
     - Errors are RFC 9457 `application/problem+json` with a stable `code`.
-    - Members and role changes (`/v1/orgs/{orgId}/members`) follow in #29.
+    - Org members and their roles: `/v1/orgs/{orgId}/members` (#29). Owner and admin change roles; a member gets 403.
+    - Roles are checked from the token first. Every write and every privileged read (`listMembers`) then checks the stored membership: it wins over a stale token, so a demoted admin loses access at once, not at token expiry.
+    - Every route under an org, the entitlements and the widget token need an active stored membership. A deactivated or invited member with an old token gets 404, same as an unknown org (#37).
+    - Apps of an org and their origin allow-list: `/v1/orgs/{orgId}/apps` (#30). A widget on an allowed origin gets a short-lived widget token: `POST /v1/apps/{appId}/widget-tokens`.
+    - Own data (#41): `GET /v1/me/export` returns everything Synthwerk keeps about the caller. `DELETE /v1/me` deletes the account and emits `dev.synthwerk.identity.user.deleted.v1`.
+    - Entitlements: the plan of an org and its limits (#31). A new org gets the plan `free`. Other services read them over HTTP and get `dev.synthwerk.identity.org.entitlements_changed.v1` on every change.
+    - Identity enforces `apps_per_org`: a create past the limit gets 403 `app_limit_reached` (#38).
+    - Widget settings of an app: set with `updateApp`, read without a token from an allowed origin: `GET /v1/apps/{appId}/widget-settings` (#38).
+    - Invite, deactivate and reactivate members (#37). A deactivated member keeps the row but has no org role in tokens.
+    - The audit list of an org: every org event identity writes, newest first (#37), and the AI settings changes of llm (#39). Owner and admin only.
   license:
     name: MIT
     identifier: MIT
@@ -21,6 +30,18 @@ tags:
     description: The signed-in caller.
   - name: orgs
     description: Orgs the caller belongs to.
+  - name: members
+    description: Members of an org and their org roles.
+  - name: apps
+    description: Apps of an org. Each app has an origin allow-list.
+  - name: widget-tokens
+    description: Short-lived tokens for a widget on an allowed origin.
+  - name: widget-settings
+    description: How the widget of an app looks. Read without a token from an allowed origin.
+  - name: entitlements
+    description: The plan of an org and its limits.
+  - name: audit
+    description: The admin actions of an org, from the events identity writes and the llm AI settings events.
 security:
   - bearer: []
 paths:
@@ -49,6 +70,129 @@ paths:
                 roles: [owner, operator]
         "401":
           $ref: "#/components/responses/Unauthenticated"
+    delete:
+      operationId: identity.deleteMe
+      summary: Delete the own account
+      description: |
+        Deletes the caller's account (synthwerk#41). Emits `dev.synthwerk.identity.user.deleted.v1`; the other services delete the user's rows when they get it.
+        - Needs a recent sign-in with MFA, else 403 `recent_mfa_required`: sign in again, then retry. The access token must have `amr` `mfa`. The proof of the recent sign-in is the header `X-Synthwerk-Id-Token`, see below. Zitadel access tokens carry no `sid` and no `auth_time`, so a delete without this header always gets 403.
+        - `X-Synthwerk-Id-Token`: an ID token of the same sign-in flow, from an OIDC client that identity accepts (the studio). Identity checks its signature, `iss`, `aud` (an accepted client id), `exp`, the same `sub` as the access token, and `auth_time` at most 15 minutes old (identity setting). The sign-in must have MFA: the ID token has `amr` `mfa`, or the user's newest gated sign-in is of the same session (`sid`) and at most 15 minutes old. Get a fresh ID token with `prompt=login` and `max_age`. The client keeps the ID token server side and sends it to identity only.
+        - Last owner rule: an org with other members must keep an owner. When the caller is its only owner, the answer is 409 `last_owner` and nothing changes. Make another member `owner` first.
+        - An org where the caller is the only member closes with the account. Identity deletes it with its apps and entitlements. `deleted_org_ids` lists these orgs.
+        - Identity deletes its own rows of the user in one transaction with the event. The Zitadel user is removed after the answer, with retries. A token issued before stays valid until it expires.
+        - An `operator` gets 403 `forbidden`: platform users are never removed through this route.
+        - A repeat while the old token is still valid answers 202 again, with the first `requested_at` and an empty `deleted_org_ids`. It changes nothing.
+      tags: [me]
+      security:
+        - bearer: []
+      parameters:
+        - name: X-Synthwerk-Id-Token
+          in: header
+          required: false
+          description: A fresh OIDC ID token of the caller (compact JWS). The proof of a recent sign-in with MFA. Without it, or when it fails a check, the answer is 403 `recent_mfa_required`.
+          schema:
+            type: string
+            maxLength: 16384
+      responses:
+        "202":
+          description: The account is deleted in identity. The Zitadel user is removed next.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccountDeletion"
+              example:
+                user_id: "396370217707541255"
+                status: accepted
+                requested_at: "2026-10-30T10:00:00Z"
+                deleted_org_ids: [019a3c20-1a2b-7c3d-8e4f-5a6b7c8d9e0f]
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/RecentMFARequired"
+        "409":
+          $ref: "#/components/responses/LastOwner"
+  /v1/me/export:
+    get:
+      operationId: identity.exportMe
+      summary: Export the own data
+      description: |
+        All data Synthwerk keeps about the caller, as one JSON document (synthwerk#41, GDPR Art. 15 and 20).
+        - `identity`: the memberships in every org and the newest MFA evidence.
+        - `services`: identity asks every service that keeps user rows (today: llm) with the caller's token and puts each answer here unchanged. A service that does not answer has `status` `unavailable`, and `complete` is false. Retry later for a full export.
+        - Profile data (email, name, passkeys) lives in Zitadel. The user reads it in the Zitadel account console.
+        - Any signed-in user may call it. Operators too: it shows only the caller's own data.
+      tags: [me]
+      security:
+        - bearer: []
+      responses:
+        "200":
+          description: The export.
+          headers:
+            Content-Disposition:
+              description: "`attachment; filename=\"synthwerk-export.json\"`."
+              schema:
+                type: string
+                maxLength: 128
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserExport"
+              example:
+                format_version: 1
+                subject: "396370217707541255"
+                exported_at: "2026-10-30T10:00:00Z"
+                complete: true
+                identity:
+                  memberships:
+                    - org_id: 0199f3a0-5b6c-7d8e-9f0a-1b2c3d4e5f60
+                      org_name: Synthwerk
+                      org_slug: synthwerk
+                      role: member
+                      joined_at: "2026-10-23T08:30:00Z"
+                      updated_at: "2026-10-28T09:00:00Z"
+                  mfa_evidence:
+                    session_id: "396370299912345678"
+                    amr: [pwd, otp, mfa]
+                    checked_at: "2026-10-30T09:55:00Z"
+                services:
+                  - service: llm
+                    status: ok
+                    data:
+                      conversations: []
+                      quota_usage: []
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+  /v1/me/entitlements:
+    get:
+      operationId: identity.getMyEntitlements
+      summary: Get the entitlements of the caller's org
+      description: |
+        The plan and the limits of the org the token acts in. Any org role may read it. The stored membership must be active.
+        - A service that acts for a user (for example llm for quotas) forwards the caller's token. It needs no org id of its own.
+        - An unknown org, a token without an org role, or a deactivated or invited member answers 404.
+      tags: [entitlements]
+      security:
+        - bearer: []
+      responses:
+        "200":
+          description: The entitlements of the caller's org.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Entitlements"
+              example:
+                org_id: 0199f3a0-5b6c-7d8e-9f0a-1b2c3d4e5f60
+                plan: free
+                limits:
+                  llm_tokens_per_user_per_day: 50000
+                  llm_tokens_per_org_per_day: 500000
+                  apps_per_org: 3
+                version: 1
+                updated_at: "2026-10-29T08:00:00Z"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "404":
+          $ref: "#/components/responses/NotFound"
   /v1/orgs:
     get:
       operationId: identity.listOrgs
@@ -139,7 +283,7 @@ paths:
     get:
       operationId: identity.getOrg
       summary: Get an org
-      description: Org detail. Needs a membership in the org, or the role `operator`.
+      description: Org detail. Needs an active membership in the org, or the role `operator`. A deactivated or invited member gets 404, same as an unknown org.
       tags: [orgs]
       security:
         - bearer: []
@@ -159,6 +303,752 @@ paths:
           $ref: "#/components/responses/Unauthenticated"
         "404":
           $ref: "#/components/responses/NotFound"
+  /v1/orgs/{orgId}/entitlements:
+    parameters:
+      - $ref: "#/components/parameters/OrgId"
+    get:
+      operationId: identity.getOrgEntitlements
+      summary: Get the entitlements of an org
+      description: The plan and the limits of the org. Needs an org role in the org (any role) and an active membership, or the role `operator`. A deactivated or invited member gets 404.
+      tags: [entitlements]
+      security:
+        - bearer: []
+      responses:
+        "200":
+          description: The entitlements of the org.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Entitlements"
+              example:
+                org_id: 0199f3a0-5b6c-7d8e-9f0a-1b2c3d4e5f60
+                plan: free
+                limits:
+                  llm_tokens_per_user_per_day: 50000
+                  llm_tokens_per_org_per_day: 500000
+                  apps_per_org: 3
+                version: 1
+                updated_at: "2026-10-29T08:00:00Z"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /v1/orgs/{orgId}/members:
+    parameters:
+      - $ref: "#/components/parameters/OrgId"
+    get:
+      operationId: identity.listMembers
+      summary: List members
+      description: Members of the org, their org roles and their status. Deactivated members are listed too. An invitee is listed after the first sign-in to the org; pending invitations are in `listInvitations`. Needs the role `owner` or `admin` in the org, or `operator`. The stored membership must also be an active `owner` or `admin`, so a token issued before a demotion or a deactivation gets 403. Cursor paging, max 100 per page.
+      tags: [members]
+      security:
+        - bearer: []
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          description: Page size.
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
+        - name: cursor
+          in: query
+          required: false
+          description: The `next_cursor` of the previous page.
+          schema:
+            type: string
+            maxLength: 256
+      responses:
+        "200":
+          description: One page of members.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MemberPage"
+              example:
+                items:
+                  - user_id: "283746192837461928"
+                    role: owner
+                    status: active
+                    updated_at: "2026-10-23T08:30:00Z"
+                  - user_id: "396370217707541255"
+                    role: member
+                    status: deactivated
+                    updated_at: "2026-10-28T09:00:00Z"
+        "400":
+          $ref: "#/components/responses/InvalidRequest"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    post:
+      operationId: identity.inviteMember
+      summary: Invite a member
+      description: |
+        Creates a pending invitation. Emits `dev.synthwerk.identity.member.invited.v1` with the invitation id.
+        - Needs the role `owner` or `admin` in the org. The stored membership must agree. A `member` gets 403. An `operator` gets 403: operator access is read only.
+        - Only an `owner` invites an `owner`.
+        - A new email: identity also creates the Zitadel user and its user grant, and Zitadel sends the invite mail (Mailpit in local, Resend in dev and prd).
+        - An email of a user of another org: adding users of another org is not supported yet. The invitation stays pending and is never accepted.
+        - Both cases look the same: the same 202 answer, the same pending item in `listInvitations`, the same audit event, and no item in `listMembers`. The API does not show which emails have an account.
+        - The invitee shows in `listMembers` after the first sign-in to the org. Then the invitation is no longer pending.
+        - The email has a pending invitation in the org already: 202 with that invitation, unchanged. Zitadel is not called again and no event is written. To change its role, revoke it and invite again.
+        - The email is an active or deactivated member of this org: 409 `member_exists`.
+        - Rate limit per caller and per org: 429 `rate_limited` with `Retry-After`.
+      tags: [members]
+      security:
+        - bearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/InviteMemberRequest"
+            example:
+              email: ada@example.com
+              role: member
+      responses:
+        "202":
+          description: The pending invitation. The same answer for every email outside the org.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Invitation"
+              example:
+                id: 019a3c1e-7a1b-7c2d-8e3f-4a5b6c7d8e9f
+                email: ada@example.com
+                role: member
+                invited_by: "283746192837461928"
+                created_at: "2026-10-30T09:00:00Z"
+        "400":
+          $ref: "#/components/responses/InvalidRequest"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/MemberConflict"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "502":
+          $ref: "#/components/responses/UpstreamUnavailable"
+        "503":
+          $ref: "#/components/responses/ZitadelNotReady"
+  /v1/orgs/{orgId}/members/{userId}:
+    parameters:
+      - $ref: "#/components/parameters/OrgId"
+      - $ref: "#/components/parameters/UserId"
+    patch:
+      operationId: identity.changeMemberRole
+      summary: Change the role of a member
+      description: |
+        Sets the org role of a member. Emits `dev.synthwerk.identity.member.role_changed.v1` when the role changes.
+        - `owner` and `admin` may set `admin` or `member` on a member that is not an owner.
+        - Only an `owner` grants `owner` or changes the role of an owner.
+        - A `member` gets 403. An `operator` gets 403: operator access is read only.
+        - The last owner keeps the role (409 `last_owner`). Nobody changes their own role (409 `own_role`).
+        - The same role again answers 200 and emits nothing.
+      tags: [members]
+      security:
+        - bearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChangeMemberRoleRequest"
+            example:
+              role: admin
+      responses:
+        "200":
+          description: The member with the new role.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Member"
+              example:
+                user_id: "396370217707541255"
+                role: admin
+                status: active
+                updated_at: "2026-10-28T09:15:00Z"
+        "400":
+          $ref: "#/components/responses/InvalidRequest"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/RoleConflict"
+        "502":
+          $ref: "#/components/responses/UpstreamUnavailable"
+        "503":
+          $ref: "#/components/responses/ZitadelNotReady"
+  /v1/orgs/{orgId}/members/{userId}:deactivate:
+    parameters:
+      - $ref: "#/components/parameters/OrgId"
+      - $ref: "#/components/parameters/UserId"
+    post:
+      operationId: identity.deactivateMember
+      summary: Deactivate a member
+      description: |
+        Deactivates the Zitadel user grant of the member. The member keeps the row and the role, but the next token has no org role in this org. Emits `dev.synthwerk.identity.member.deactivated.v1`.
+        - Needs the role `owner` or `admin` in the org. The stored membership must agree. A `member` or an `operator` gets 403.
+        - Only an `owner` deactivates an `owner`. The last active owner stays active (409 `last_owner`).
+        - Nobody deactivates their own membership (409 `own_membership`).
+        - A token issued before the change keeps working at other services until it expires. Identity checks the stored status at once.
+        - A member that is deactivated already answers 200 and emits nothing.
+      tags: [members]
+      security:
+        - bearer: []
+      responses:
+        "200":
+          description: The member with the new status.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Member"
+              example:
+                user_id: "396370217707541255"
+                role: member
+                status: deactivated
+                updated_at: "2026-10-30T09:30:00Z"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/MemberConflict"
+        "502":
+          $ref: "#/components/responses/UpstreamUnavailable"
+        "503":
+          $ref: "#/components/responses/ZitadelNotReady"
+  /v1/orgs/{orgId}/members/{userId}:reactivate:
+    parameters:
+      - $ref: "#/components/parameters/OrgId"
+      - $ref: "#/components/parameters/UserId"
+    post:
+      operationId: identity.reactivateMember
+      summary: Reactivate a member
+      description: |
+        Reactivates the Zitadel user grant of a deactivated member, with the role it had. Emits `dev.synthwerk.identity.member.reactivated.v1`.
+        - Needs the role `owner` or `admin` in the org. The stored membership must agree. A `member` or an `operator` gets 403.
+        - Only an `owner` reactivates an `owner`.
+        - A member that is active already answers 200 and emits nothing.
+      tags: [members]
+      security:
+        - bearer: []
+      responses:
+        "200":
+          description: The member with the new status.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Member"
+              example:
+                user_id: "396370217707541255"
+                role: member
+                status: active
+                updated_at: "2026-10-30T09:30:00Z"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/MemberConflict"
+        "502":
+          $ref: "#/components/responses/UpstreamUnavailable"
+        "503":
+          $ref: "#/components/responses/ZitadelNotReady"
+  /v1/orgs/{orgId}/invitations:
+    parameters:
+      - $ref: "#/components/parameters/OrgId"
+    get:
+      operationId: identity.listInvitations
+      summary: List pending invitations
+      description: |
+        Pending invitations of the org, newest first. An invitation stops being pending when the invitee signs in to the org or an admin revokes it.
+        - Needs the role `owner` or `admin` in the org. The stored membership must be an active `owner` or `admin`. A `member` or an `operator` gets 403.
+        - It holds the email the admin typed. It never says whether the email has an account.
+        - Cursor paging, max 100 per page.
+      tags: [members]
+      security:
+        - bearer: []
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          description: Page size.
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
+        - name: cursor
+          in: query
+          required: false
+          description: The `next_cursor` of the previous page.
+          schema:
+            type: string
+            maxLength: 256
+      responses:
+        "200":
+          description: One page of pending invitations.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InvitationPage"
+              example:
+                items:
+                  - id: 019a3c1e-7a1b-7c2d-8e3f-4a5b6c7d8e9f
+                    email: ada@example.com
+                    role: member
+                    invited_by: "283746192837461928"
+                    created_at: "2026-10-30T09:00:00Z"
+        "400":
+          $ref: "#/components/responses/InvalidRequest"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /v1/orgs/{orgId}/invitations/{invitationId}:
+    parameters:
+      - $ref: "#/components/parameters/OrgId"
+      - $ref: "#/components/parameters/InvitationId"
+    delete:
+      operationId: identity.revokeInvitation
+      summary: Revoke a pending invitation
+      description: |
+        Revokes a pending invitation. Emits `dev.synthwerk.identity.member.invite_revoked.v1` with the invitation id.
+        - Needs the role `owner` or `admin` in the org. The stored membership must be an active `owner` or `admin`. A `member` or an `operator` gets 403.
+        - Only an `owner` revokes an invitation for the role `owner`.
+        - When identity created a Zitadel user for the invitation, identity deletes that user. The invitee cannot sign in to the org.
+        - The invitee does not become a member later: a revoked invitation is never accepted.
+        - An invitation that is not pending (accepted, revoked or unknown): 404.
+      tags: [members]
+      security:
+        - bearer: []
+      responses:
+        "204":
+          description: Invitation revoked.
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "502":
+          $ref: "#/components/responses/UpstreamUnavailable"
+        "503":
+          $ref: "#/components/responses/ZitadelNotReady"
+  /v1/orgs/{orgId}/audit-events:
+    parameters:
+      - $ref: "#/components/parameters/OrgId"
+    get:
+      operationId: identity.listAuditEvents
+      summary: List the audit events of an org
+      description: |
+        The admin actions of the org, newest first. Each item is an event identity wrote to its outbox for the org, kept after the outbox row is gone, or an AI settings change of llm that identity received from `EVT_LLM` (synthwerk#39).
+        - Needs the role `owner` or `admin` in the org. The stored membership must be an active `owner` or `admin`. A `member` gets 403. An `operator` gets 403.
+        - Event types: `org.created`, `member.invited`, `member.role_changed`, `member.deactivated`, `member.reactivated`, `app.created`, `org.entitlements_changed`, `dev.synthwerk.llm.ai_settings.changed.v1`, and later org events. Clients must accept types they do not know.
+        - `data` is the event data, as its schema in `events/identity` or `events/llm` says. No email, no personal name, no system prompt text.
+        - An llm event shows a few seconds after the change: identity reads it from the bus.
+        - Cursor paging, max 100 per page.
+      tags: [audit]
+      security:
+        - bearer: []
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          description: Page size.
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
+        - name: cursor
+          in: query
+          required: false
+          description: The `next_cursor` of the previous page.
+          schema:
+            type: string
+            maxLength: 256
+      responses:
+        "200":
+          description: One page of audit events, newest first.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuditEventPage"
+              example:
+                items:
+                  - id: 019a3c20-1a2b-7c3d-8e4f-5a6b7c8d9e0f
+                    type: dev.synthwerk.identity.member.role_changed.v1
+                    time: "2026-10-30T09:15:00Z"
+                    actor: user:283746192837461928
+                    subject: "396370217707541255"
+                    data:
+                      org_id: 0199f3a0-5b6c-7d8e-9f0a-1b2c3d4e5f60
+                      user_sub: "396370217707541255"
+                      old_role: member
+                      new_role: admin
+                  - id: 019a3c1f-0a1b-7c2d-8e3f-4a5b6c7d8e9f
+                    type: dev.synthwerk.identity.member.invited.v1
+                    time: "2026-10-30T09:00:00Z"
+                    actor: user:283746192837461928
+                    subject: 019a3c1e-7a1b-7c2d-8e3f-4a5b6c7d8e9f
+                    data:
+                      org_id: 0199f3a0-5b6c-7d8e-9f0a-1b2c3d4e5f60
+                      invitation_id: 019a3c1e-7a1b-7c2d-8e3f-4a5b6c7d8e9f
+                      role: member
+                next_cursor: MTI
+        "400":
+          $ref: "#/components/responses/InvalidRequest"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /v1/orgs/{orgId}/apps:
+    parameters:
+      - $ref: "#/components/parameters/OrgId"
+    get:
+      operationId: identity.listApps
+      summary: List apps
+      description: Apps of the org, oldest first. Needs an active membership in the org, or the role `operator`. A deactivated or invited member gets 404. Cursor paging, max 100 per page.
+      tags: [apps]
+      security:
+        - bearer: []
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          description: Page size.
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
+        - name: cursor
+          in: query
+          required: false
+          description: The `next_cursor` of the previous page.
+          schema:
+            type: string
+            maxLength: 256
+      responses:
+        "200":
+          description: One page of apps.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AppPage"
+              example:
+                items:
+                  - id: 019a3b10-7c2d-7e4f-8a5b-6c7d8e9f0a1b
+                    org_id: 0199f3a0-5b6c-7d8e-9f0a-1b2c3d4e5f60
+                    name: Shop website
+                    allowed_origins: ["https://shop.example", "http://localhost:3000"]
+                    created_at: "2026-10-29T10:00:00Z"
+                    widget_settings:
+                      position: bottom-right
+                      theme: default
+                      mode: system
+                      lang: auto
+                      accent: flagship
+                      greeting: ""
+                    updated_at: "2026-10-29T10:00:00Z"
+        "400":
+          $ref: "#/components/responses/InvalidRequest"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    post:
+      operationId: identity.createApp
+      summary: Create an app
+      description: |
+        Creates an app with its origin allow-list. Emits `dev.synthwerk.identity.app.created.v1`.
+        - Needs the role `owner` or `admin` in the org. The stored membership must agree. A `member` gets 403. An `operator` gets 403: operator access is read only.
+        - Each origin is `scheme://host[:port]`, nothing more. The rules are in `AppOrigin`.
+        - The org may have `apps_per_org` apps (entitlements, `0` = no limit). One more gets 403 `app_limit_reached`.
+        - A new app gets the default widget settings (`WidgetSettings`).
+      tags: [apps]
+      security:
+        - bearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateAppRequest"
+            example:
+              name: Shop website
+              allowed_origins: ["https://shop.example", "http://localhost:3000"]
+      responses:
+        "201":
+          description: App created.
+          headers:
+            Location:
+              description: Path of the new app.
+              schema:
+                type: string
+                maxLength: 128
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/App"
+              example:
+                id: 019a3b10-7c2d-7e4f-8a5b-6c7d8e9f0a1b
+                org_id: 0199f3a0-5b6c-7d8e-9f0a-1b2c3d4e5f60
+                name: Shop website
+                allowed_origins: ["https://shop.example", "http://localhost:3000"]
+                created_at: "2026-10-29T10:00:00Z"
+                widget_settings:
+                  position: bottom-right
+                  theme: default
+                  mode: system
+                  lang: auto
+                  accent: flagship
+                  greeting: ""
+                updated_at: "2026-10-29T10:00:00Z"
+        "400":
+          $ref: "#/components/responses/InvalidRequest"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/CreateAppForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /v1/orgs/{orgId}/apps/{appId}:
+    parameters:
+      - $ref: "#/components/parameters/OrgId"
+      - $ref: "#/components/parameters/AppId"
+    get:
+      operationId: identity.getApp
+      summary: Get an app
+      description: One app with its origin allow-list. Needs an active membership in the org, or the role `operator`. A deactivated or invited member gets 404.
+      tags: [apps]
+      security:
+        - bearer: []
+      responses:
+        "200":
+          description: The app.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/App"
+              example:
+                id: 019a3b10-7c2d-7e4f-8a5b-6c7d8e9f0a1b
+                org_id: 0199f3a0-5b6c-7d8e-9f0a-1b2c3d4e5f60
+                name: Shop website
+                allowed_origins: ["https://shop.example", "http://localhost:3000"]
+                created_at: "2026-10-29T10:00:00Z"
+                widget_settings:
+                  position: bottom-right
+                  theme: default
+                  mode: system
+                  lang: auto
+                  accent: flagship
+                  greeting: ""
+                updated_at: "2026-10-29T10:00:00Z"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    patch:
+      operationId: identity.updateApp
+      summary: Update an app
+      description: |
+        Sets the name, the origin allow-list or the widget settings of an app. A new list replaces the old list. New widget settings replace the old settings as a whole.
+        - Needs the role `owner` or `admin` in the org. The stored membership must agree. A `member` or an `operator` gets 403.
+        - A widget token issued before the change stays valid until it expires (15 minutes or less).
+        - Emits no event yet.
+      tags: [apps]
+      security:
+        - bearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateAppRequest"
+            example:
+              allowed_origins: ["https://shop.example", "https://www.shop.example"]
+      responses:
+        "200":
+          description: The app after the change.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/App"
+              example:
+                id: 019a3b10-7c2d-7e4f-8a5b-6c7d8e9f0a1b
+                org_id: 0199f3a0-5b6c-7d8e-9f0a-1b2c3d4e5f60
+                name: Shop website
+                allowed_origins: ["https://shop.example", "https://www.shop.example"]
+                created_at: "2026-10-29T10:00:00Z"
+                widget_settings:
+                  position: bottom-left
+                  theme: default
+                  mode: dark
+                  lang: de
+                  accent: lab
+                  greeting: Hallo! Wie kann ich helfen?
+                updated_at: "2026-10-29T11:00:00Z"
+        "400":
+          $ref: "#/components/responses/InvalidRequest"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    delete:
+      operationId: identity.deleteApp
+      summary: Delete an app
+      description: |
+        Deletes the app. Its widgets get no new token.
+        - Needs the role `owner` or `admin` in the org. The stored membership must agree. A `member` or an `operator` gets 403.
+        - A widget token issued before the delete stays valid until it expires (15 minutes or less).
+        - Emits no event yet.
+      tags: [apps]
+      security:
+        - bearer: []
+      responses:
+        "204":
+          description: App deleted.
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /v1/apps/{appId}/widget-settings:
+    parameters:
+      - $ref: "#/components/parameters/AppId"
+    get:
+      operationId: identity.getWidgetSettings
+      summary: Get the widget settings
+      description: |
+        The widget settings of an app, for the widget on the page. No token: a signed-out visitor gets them too, and the widget makes no AI call for them.
+        - The `Origin` header must equal one entry of the allow-list of the app. Else 403 `origin_not_allowed`.
+        - Only an allowed origin gets `Access-Control-Allow-Origin`.
+        - The answer holds the settings only: no origins, no org, no name.
+        - `Cache-Control: no-cache`: a change in the studio shows on the next page load.
+        - Every answer of this route, the CORS preflight included, sends `Vary: Origin`: a shared cache never serves the answer of one origin to another. A refusal sends `Cache-Control: no-store`.
+      tags: [widget-settings]
+      security: []
+      parameters:
+        - name: Origin
+          in: header
+          required: true
+          description: The page origin. Browsers set it. Compared exactly with the allow-list after the default port is removed.
+          schema:
+            type: string
+            maxLength: 256
+      responses:
+        "200":
+          description: The widget settings.
+          headers:
+            Cache-Control:
+              description: Always `no-cache`. A cache must check again before it reuses the answer.
+              schema:
+                type: string
+                maxLength: 32
+            Vary:
+              description: Always `Origin`. The CORS headers depend on the request origin.
+              schema:
+                type: string
+                maxLength: 32
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WidgetSettings"
+              example:
+                position: bottom-left
+                theme: default
+                mode: dark
+                lang: de
+                accent: lab
+                greeting: Hallo! Wie kann ich helfen?
+        "403":
+          $ref: "#/components/responses/OriginNotAllowed"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /v1/apps/{appId}/widget-tokens:
+    parameters:
+      - $ref: "#/components/parameters/AppId"
+    post:
+      operationId: identity.createWidgetToken
+      summary: Issue a widget token
+      description: |
+        Issues a short-lived widget token for the signed-in caller, bound to the app and to the request origin.
+        - The Bearer token is the Zitadel access token of the signed-in user. A widget token never gets a new widget token.
+        - The caller must be an active member of the app's org (token and stored membership). A deactivated or invited member gets 404, same as an unknown app.
+        - The `Origin` header must equal one entry of the allow-list: same scheme, host and port. No prefix, suffix or wildcard match. Else 403 `origin_not_allowed`.
+        - The token is a JWT (`typ` `at+jwt`, `alg` `ES256`), signed by identity. It lives 15 minutes or less (`expires_in`).
+        - Claims: `iss` (identity), `aud`, `sub` (the user), `urn:zitadel:iam:user:resourceowner:id` (the Zitadel org), `client_id` (the app id), `synthwerk:origin` (the canonical origin), `iat`, `nbf`, `exp`, `jti`. No roles: a widget token is never an admin token.
+        - Verify it with the key set at `/.well-known/jwks.json` of identity (RFC 7517). A service that accepts it must also compare `synthwerk:origin` with the `Origin` header.
+        - Browsers send a CORS preflight first. Identity answers it with the CORS headers only for an allowed origin.
+        - Every answer of this route, the CORS preflight included, sends `Vary: Origin` and `Cache-Control: no-store`.
+      tags: [widget-tokens]
+      security:
+        - bearer: []
+      parameters:
+        - name: Origin
+          in: header
+          required: true
+          description: The page origin. Browsers set it. Compared exactly with the allow-list after the default port is removed.
+          schema:
+            type: string
+            maxLength: 256
+      responses:
+        "201":
+          description: Widget token issued.
+          headers:
+            Cache-Control:
+              description: Always `no-store`.
+              schema:
+                type: string
+                maxLength: 32
+            Vary:
+              description: Always `Origin`. The CORS headers depend on the request origin.
+              schema:
+                type: string
+                maxLength: 32
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WidgetToken"
+              example:
+                access_token: eyJhbGciOiJFUzI1NiIsImtpZCI6IjNxV2lxIiwidHlwIjoiYXQrand0In0.e30.c2lnbmF0dXJl
+                token_type: Bearer
+                expires_in: 600
+                expires_at: "2026-10-29T10:10:00Z"
+                app_id: 019a3b10-7c2d-7e4f-8a5b-6c7d8e9f0a1b
+                origin: https://shop.example
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/OriginNotAllowed"
+        "404":
+          $ref: "#/components/responses/NotFound"
 components:
   securitySchemes:
     bearer:
@@ -172,6 +1062,34 @@ components:
       in: path
       required: true
       description: Org id.
+      schema:
+        type: string
+        format: uuid
+        maxLength: 36
+    UserId:
+      name: userId
+      in: path
+      required: true
+      description: Subject id (token `sub`) of the member.
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 128
+        pattern: "^[A-Za-z0-9_-]+$"
+    InvitationId:
+      name: invitationId
+      in: path
+      required: true
+      description: Id of the invitation.
+      schema:
+        type: string
+        format: uuid
+        maxLength: 36
+    AppId:
+      name: appId
+      in: path
+      required: true
+      description: App id.
       schema:
         type: string
         format: uuid
@@ -218,7 +1136,7 @@ components:
             status: 403
             code: forbidden
     NotFound:
-      description: Unknown org, or an org the caller does not belong to. Same body in both cases. Code `not_found`.
+      description: Unknown org or member, or an org the caller does not belong to. Same body in every case. Code `not_found`.
       content:
         application/problem+json:
           schema:
@@ -239,6 +1157,146 @@ components:
             title: Slug taken
             status: 409
             code: slug_taken
+    RoleConflict:
+      description: |
+        The role change breaks an org rule.
+        - `last_owner`: the org would lose its last owner.
+        - `own_role`: the caller tried to change their own role.
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+          example:
+            type: https://schemas.synthwerk.dev/problems/last_owner
+            title: Last owner
+            status: 409
+            code: last_owner
+    CreateAppForbidden:
+      description: |
+        The app was not created.
+        - `forbidden`: the caller's role does not allow the call. The body is generic.
+        - `app_limit_reached`: the org has `apps_per_org` apps already. Delete an app or change the plan.
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+          example:
+            type: https://schemas.synthwerk.dev/problems/app_limit_reached
+            title: App limit reached
+            status: 403
+            code: app_limit_reached
+            detail: The plan of this org allows 3 apps.
+    MemberConflict:
+      description: |
+        The member change breaks an org rule.
+        - `member_exists`: the email is an active or deactivated member of this org.
+        - `last_owner`: the org would lose its last active owner.
+        - `own_membership`: the caller tried to deactivate their own membership.
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+          example:
+            type: https://schemas.synthwerk.dev/problems/member_exists
+            title: Member exists
+            status: 409
+            code: member_exists
+    RateLimited:
+      description: Too many invites from this caller or for this org. Code `rate_limited`. Retry after the seconds in `Retry-After`.
+      headers:
+        Retry-After:
+          description: Seconds until the next invite is allowed.
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 86400
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+          example:
+            type: https://schemas.synthwerk.dev/problems/rate_limited
+            title: Rate limited
+            status: 429
+            code: rate_limited
+    OriginNotAllowed:
+      description: The `Origin` header is missing, not valid, or not in the allow-list of the app. Code `origin_not_allowed`. The body never lists the allowed origins.
+      headers:
+        Cache-Control:
+          description: Always `no-store`.
+          schema:
+            type: string
+            maxLength: 32
+        Vary:
+          description: Always `Origin`.
+          schema:
+            type: string
+            maxLength: 32
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+          example:
+            type: https://schemas.synthwerk.dev/problems/origin_not_allowed
+            title: Origin not allowed
+            status: 403
+            code: origin_not_allowed
+    RecentMFARequired:
+      description: |
+        - `recent_mfa_required`: the token has no `amr` `mfa`, the `X-Synthwerk-Id-Token` header is missing or fails a check, or the sign-in with MFA is older than 15 minutes. Sign in again with MFA, then retry.
+        - `forbidden`: the caller is an `operator`. Platform users are not removed here.
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+          example:
+            type: https://schemas.synthwerk.dev/problems/recent_mfa_required
+            title: Recent MFA required
+            status: 403
+            code: recent_mfa_required
+            detail: Sign in again with MFA, then retry.
+    LastOwner:
+      description: The caller is the only owner of an org that has other members. Code `last_owner`. Nothing changed. Make another member `owner` first.
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+          example:
+            type: https://schemas.synthwerk.dev/problems/last_owner
+            title: Last owner
+            status: 409
+            code: last_owner
+            detail: Make another member owner of org 0199f3a0-5b6c-7d8e-9f0a-1b2c3d4e5f60 first.
+    UpstreamUnavailable:
+      description: Zitadel did not take the change. Nothing changed. Code `upstream_unavailable`. Retry later.
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+          example:
+            type: https://schemas.synthwerk.dev/problems/upstream_unavailable
+            title: Upstream unavailable
+            status: 502
+            code: upstream_unavailable
+    ZitadelNotReady:
+      description: The Zitadel setup is not finished, so identity does not know the project id yet. Code `upstream_unavailable`. Nothing changed. Retry after the seconds in `Retry-After`.
+      headers:
+        Retry-After:
+          description: Seconds until the next try.
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 86400
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+          example:
+            type: https://schemas.synthwerk.dev/problems/upstream_unavailable
+            title: Upstream unavailable
+            status: 503
+            code: upstream_unavailable
+            detail: The Zitadel setup is not finished. Retry later.
   schemas:
     Role:
       type: string
@@ -270,6 +1328,210 @@ components:
           type: string
           format: date-time
           maxLength: 40
+    Entitlements:
+      type: object
+      additionalProperties: false
+      required: [org_id, plan, limits, version, updated_at]
+      description: The plan of an org and the limits it gives. Identity owns them.
+      properties:
+        org_id:
+          type: string
+          format: uuid
+          maxLength: 36
+        plan:
+          type: string
+          minLength: 1
+          maxLength: 32
+          pattern: "^[a-z][a-z0-9_]*$"
+          description: |
+            Plan name. `free` today; paid plans come in M5.
+            Clients must accept plan names they do not know and read `limits`, never the name.
+        limits:
+          $ref: "#/components/schemas/EntitlementLimits"
+        version:
+          type: integer
+          format: int64
+          minimum: 1
+          description: Goes up by one on every change. A consumer drops an event with a version lower than the one it holds.
+        updated_at:
+          type: string
+          format: date-time
+          maxLength: 40
+    EntitlementLimits:
+      type: object
+      additionalProperties: false
+      required: [llm_tokens_per_user_per_day, llm_tokens_per_org_per_day, apps_per_org]
+      description: |
+        Limits of the plan. `0` means no limit. A day is a UTC day.
+        The schema is closed. A new limit comes with a new spec minor version and regenerated clients.
+      properties:
+        llm_tokens_per_user_per_day:
+          type: integer
+          format: int64
+          minimum: 0
+          description: LLM tokens one user may use in this org per UTC day.
+        llm_tokens_per_org_per_day:
+          type: integer
+          format: int64
+          minimum: 0
+          description: LLM tokens all users of the org may use together per UTC day.
+        apps_per_org:
+          type: integer
+          format: int32
+          minimum: 0
+          maximum: 10000
+          description: Apps the org may have.
+    OrgRole:
+      type: string
+      enum: [owner, admin, member]
+      description: An org role. `operator` is never an org role.
+    MemberStatus:
+      type: string
+      enum: [active, deactivated]
+      description: |
+        - `active`: the Zitadel user grant is active. Tokens carry the org role.
+        - `deactivated`: the grant is deactivated. The member keeps the row and the role, but tokens carry no org role.
+    Member:
+      type: object
+      additionalProperties: false
+      required: [user_id, role, status, updated_at]
+      properties:
+        user_id:
+          type: string
+          minLength: 1
+          maxLength: 128
+          pattern: "^[A-Za-z0-9_-]+$"
+          description: Subject id (token `sub`). Never an email.
+        role:
+          $ref: "#/components/schemas/OrgRole"
+        status:
+          $ref: "#/components/schemas/MemberStatus"
+        updated_at:
+          type: string
+          format: date-time
+          maxLength: 40
+    MemberPage:
+      type: object
+      additionalProperties: false
+      required: [items]
+      properties:
+        items:
+          type: array
+          maxItems: 100
+          items:
+            $ref: "#/components/schemas/Member"
+        next_cursor:
+          type: string
+          maxLength: 256
+          description: Cursor of the next page. Absent on the last page.
+    InviteMemberRequest:
+      type: object
+      additionalProperties: false
+      required: [email, role]
+      properties:
+        email:
+          type: string
+          format: email
+          minLength: 3
+          maxLength: 254
+          description: Where Zitadel sends the invite mail. Identity passes it to Zitadel and stores it nowhere.
+        role:
+          $ref: "#/components/schemas/OrgRole"
+    Invitation:
+      type: object
+      additionalProperties: false
+      required: [id, email, role, invited_by, created_at]
+      description: A pending invitation. It never says whether the email has an account.
+      properties:
+        id:
+          type: string
+          format: uuid
+          maxLength: 36
+        email:
+          type: string
+          format: email
+          maxLength: 254
+          description: The email the admin typed. Only owners and admins of the org see it.
+        role:
+          $ref: "#/components/schemas/OrgRole"
+        invited_by:
+          type: string
+          maxLength: 128
+          pattern: "^[A-Za-z0-9_-]+$"
+          description: Subject id of the owner or admin who invited.
+        created_at:
+          type: string
+          format: date-time
+          maxLength: 40
+    InvitationPage:
+      type: object
+      additionalProperties: false
+      required: [items]
+      properties:
+        items:
+          type: array
+          maxItems: 100
+          items:
+            $ref: "#/components/schemas/Invitation"
+        next_cursor:
+          type: string
+          maxLength: 256
+          description: Cursor of the next page. Absent on the last page.
+    AuditEvent:
+      type: object
+      additionalProperties: false
+      required: [id, type, time, actor, data]
+      description: One org event, as identity wrote it to its outbox or received it from llm (AI settings, synthwerk#39).
+      properties:
+        id:
+          type: string
+          format: uuid
+          maxLength: 36
+          description: The CloudEvents id.
+        type:
+          type: string
+          maxLength: 128
+          pattern: "^dev\\.synthwerk\\.[a-z][a-z0-9]*\\.[a-z][a-z0-9_]*\\.[a-z][a-z0-9_]*\\.v[1-9][0-9]*$"
+          description: The CloudEvents type. Clients must accept types they do not know.
+        time:
+          type: string
+          format: date-time
+          maxLength: 40
+        actor:
+          type: string
+          maxLength: 136
+          pattern: "^(user:[A-Za-z0-9_-]{1,128}|service:[a-z][a-z0-9-]{0,62}|system)$"
+          description: Who did it. `user:<sub>`, `service:<name>` or `system` (a change from Zitadel).
+        subject:
+          type: string
+          maxLength: 128
+          description: The CloudEvents subject, the id of the main entity. Absent when the event has none.
+        data:
+          type: object
+          additionalProperties: true
+          maxProperties: 32
+          description: The event data. Its schema is the event schema in `events/identity` or `events/llm`.
+    AuditEventPage:
+      type: object
+      additionalProperties: false
+      required: [items]
+      properties:
+        items:
+          type: array
+          maxItems: 100
+          items:
+            $ref: "#/components/schemas/AuditEvent"
+        next_cursor:
+          type: string
+          maxLength: 256
+          description: Cursor of the next page. Absent on the last page.
+    ChangeMemberRoleRequest:
+      type: object
+      additionalProperties: false
+      required: [role]
+      properties:
+        role:
+          $ref: "#/components/schemas/OrgRole"
     OrgPage:
       type: object
       additionalProperties: false
@@ -317,6 +1579,307 @@ components:
           description: Roles of the caller in `org`, plus `operator` for a platform operator.
           items:
             $ref: "#/components/schemas/Role"
+    AppOrigin:
+      type: string
+      minLength: 8
+      maxLength: 256
+      description: |
+        A web origin: `scheme://host[:port]`. Identity stores and returns the canonical form.
+        - Scheme `https`. Scheme `http` only for `localhost`, `127.0.0.1` and `[::1]`.
+        - Host: a DNS name (ASCII; use punycode for other characters), an IPv4 address or a bracketed IPv6 address. Identity stores it in lower case.
+        - Port: optional, 1 to 65535. The default port (443 for https, 80 for http) is removed.
+        - No path (not even `/`), no query, no fragment, no user info, no wildcard. `null` is not an origin.
+        - Match is exact on the canonical form: `https://shop.example` does not match `https://shop.example.evil.test`, `https://a.shop.example` or `http://shop.example`.
+    App:
+      type: object
+      additionalProperties: false
+      required: [id, org_id, name, allowed_origins, widget_settings, created_at, updated_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+          maxLength: 36
+        org_id:
+          type: string
+          format: uuid
+          maxLength: 36
+        name:
+          type: string
+          minLength: 1
+          maxLength: 128
+          description: Display name.
+        allowed_origins:
+          type: array
+          minItems: 1
+          maxItems: 20
+          uniqueItems: true
+          description: Origins that may get a widget token for this app. Canonical form.
+          items:
+            $ref: "#/components/schemas/AppOrigin"
+        widget_settings:
+          $ref: "#/components/schemas/WidgetSettings"
+        created_at:
+          type: string
+          format: date-time
+          maxLength: 40
+        updated_at:
+          type: string
+          format: date-time
+          maxLength: 40
+    AppPage:
+      type: object
+      additionalProperties: false
+      required: [items]
+      properties:
+        items:
+          type: array
+          maxItems: 100
+          items:
+            $ref: "#/components/schemas/App"
+        next_cursor:
+          type: string
+          maxLength: 256
+          description: Cursor of the next page. Absent on the last page.
+    CreateAppRequest:
+      type: object
+      additionalProperties: false
+      required: [name, allowed_origins]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 128
+        allowed_origins:
+          type: array
+          minItems: 1
+          maxItems: 20
+          description: Two entries with the same canonical form are refused (400).
+          items:
+            $ref: "#/components/schemas/AppOrigin"
+    UpdateAppRequest:
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      description: At least one field. A field that is absent keeps its value.
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 128
+        allowed_origins:
+          type: array
+          minItems: 1
+          maxItems: 20
+          description: Replaces the whole list. Two entries with the same canonical form are refused (400).
+          items:
+            $ref: "#/components/schemas/AppOrigin"
+        widget_settings:
+          $ref: "#/components/schemas/WidgetSettings"
+    WidgetSettings:
+      type: object
+      additionalProperties: false
+      required: [position, theme, mode, lang, accent, greeting]
+      description: |
+        How the widget of an app looks (synthwerk#38). The studio sets them; the widget loads them (widgets#34).
+        - An attribute on `<synthwerk-chat>` wins over the stored value.
+        - Colours come only from `@synthwerk/tokens`: a theme and an accent group. No free CSS.
+        - A new app gets the defaults: `bottom-right`, `default`, `system`, `auto`, `flagship`, empty greeting.
+      properties:
+        position:
+          type: string
+          enum: [bottom-right, bottom-left]
+          description: Corner of the launcher.
+        theme:
+          type: string
+          enum: [default, contrast]
+          description: Token theme (`data-theme`).
+        mode:
+          type: string
+          enum: [system, light, dark]
+          description: Colour mode. `system` follows the visitor's system setting.
+        lang:
+          type: string
+          enum: [auto, de, en]
+          description: Widget language. `auto` uses the browser language, else `en`.
+        accent:
+          type: string
+          enum: [flagship, lab, ops, venture]
+          description: Token accent group (`data-group`).
+        greeting:
+          type: string
+          maxLength: 280
+          description: First message of the chat, plain text. Empty = the widget's own greeting. Never rendered as HTML.
+    WidgetToken:
+      type: object
+      additionalProperties: false
+      required: [access_token, token_type, expires_in, expires_at, app_id, origin]
+      properties:
+        access_token:
+          type: string
+          minLength: 1
+          maxLength: 4096
+          description: "The widget token (JWT). Send it in the header `Authorization` as `Bearer <token>`, from the same origin. Never log it."
+        token_type:
+          type: string
+          enum: [Bearer]
+        expires_in:
+          type: integer
+          minimum: 1
+          maximum: 900
+          description: Seconds until the token expires. Never more than 900 (15 minutes).
+        expires_at:
+          type: string
+          format: date-time
+          maxLength: 40
+        app_id:
+          type: string
+          format: uuid
+          maxLength: 36
+        origin:
+          $ref: "#/components/schemas/AppOrigin"
+    AccountDeletion:
+      type: object
+      additionalProperties: false
+      required: [user_id, status, requested_at, deleted_org_ids]
+      description: The answer to `DELETE /v1/me`.
+      properties:
+        user_id:
+          type: string
+          minLength: 1
+          maxLength: 128
+          pattern: "^[A-Za-z0-9_-]+$"
+          description: Subject id (token `sub`) of the deleted user.
+        status:
+          type: string
+          enum: [accepted]
+          description: "`accepted`: identity deleted its rows and published the fact. The Zitadel user is removed next, with retries."
+        requested_at:
+          type: string
+          format: date-time
+          maxLength: 40
+          description: When identity took the first delete request of this user.
+        deleted_org_ids:
+          type: array
+          maxItems: 100
+          uniqueItems: true
+          description: Orgs that closed with the account, because the caller was their only member.
+          items:
+            type: string
+            format: uuid
+            maxLength: 36
+    UserExport:
+      type: object
+      additionalProperties: false
+      required: [format_version, subject, exported_at, complete, identity, services]
+      description: Everything Synthwerk keeps about one user. Machine-readable (GDPR Art. 20).
+      properties:
+        format_version:
+          type: integer
+          enum: [1]
+          description: Version of this document format. A new field keeps 1; a removed or renamed field gives 2.
+        subject:
+          type: string
+          minLength: 1
+          maxLength: 128
+          pattern: "^[A-Za-z0-9_-]+$"
+          description: Token `sub` of the caller.
+        exported_at:
+          type: string
+          format: date-time
+          maxLength: 40
+        complete:
+          type: boolean
+          description: False when at least one service in `services` has `status` `unavailable`.
+        identity:
+          $ref: "#/components/schemas/IdentityExport"
+        services:
+          type: array
+          maxItems: 20
+          description: One entry per service that keeps user rows. Order by `service`.
+          items:
+            $ref: "#/components/schemas/ServiceExport"
+    IdentityExport:
+      type: object
+      additionalProperties: false
+      required: [memberships]
+      description: The rows identity keeps about the user.
+      properties:
+        memberships:
+          type: array
+          maxItems: 1000
+          description: Every org membership of the user, by org name.
+          items:
+            $ref: "#/components/schemas/ExportMembership"
+        mfa_evidence:
+          $ref: "#/components/schemas/ExportMfaEvidence"
+    ExportMembership:
+      type: object
+      additionalProperties: false
+      required: [org_id, org_name, org_slug, role, joined_at, updated_at]
+      properties:
+        org_id:
+          type: string
+          format: uuid
+          maxLength: 36
+        org_name:
+          type: string
+          minLength: 1
+          maxLength: 128
+        org_slug:
+          type: string
+          minLength: 2
+          maxLength: 64
+          pattern: "^[a-z][a-z0-9-]*$"
+        role:
+          $ref: "#/components/schemas/OrgRole"
+        joined_at:
+          type: string
+          format: date-time
+          maxLength: 40
+        updated_at:
+          type: string
+          format: date-time
+          maxLength: 40
+    ExportMfaEvidence:
+      type: object
+      additionalProperties: false
+      required: [session_id, amr, checked_at]
+      description: The newest sign-in with MFA that the MFA gate stored. Absent when there is none. It holds no session token.
+      properties:
+        session_id:
+          type: string
+          minLength: 1
+          maxLength: 128
+          description: Zitadel session id. Not a credential.
+        amr:
+          type: array
+          maxItems: 10
+          items:
+            type: string
+            maxLength: 16
+        checked_at:
+          type: string
+          format: date-time
+          maxLength: 40
+    ServiceExport:
+      type: object
+      additionalProperties: false
+      required: [service, status]
+      properties:
+        service:
+          type: string
+          minLength: 1
+          maxLength: 32
+          pattern: "^[a-z][a-z0-9-]*$"
+          description: Service name, for example `llm`.
+        status:
+          type: string
+          enum: [ok, unavailable]
+          description: "`unavailable`: the service did not answer in time, or answered with an error. `data` is absent."
+        data:
+          type: object
+          additionalProperties: true
+          description: The service's own export, unchanged. Its schema is in the service's spec, for example `LlmExport` in `openapi/llm`.
     Problem:
       type: object
       additionalProperties: false
@@ -330,8 +1893,18 @@ components:
         | `invalid_request` | 400 | Body or parameter not valid. |
         | `unauthenticated` | 401 | Token missing or not valid. |
         | `forbidden` | 403 | Role does not allow the call. |
-        | `not_found` | 404 | Unknown org or no membership. |
+        | `not_found` | 404 | Unknown org or member, or no membership. |
         | `slug_taken` | 409 | Another org has the slug. |
+        | `last_owner` | 409 | The org would lose its last owner (role change or account delete). |
+        | `own_role` | 409 | The caller tried to change their own role. |
+        | `own_membership` | 409 | The caller tried to deactivate their own membership. |
+        | `member_exists` | 409 | The email is an active or deactivated member of this org. |
+        | `rate_limited` | 429 | Too many invites. Retry after `Retry-After` seconds. |
+        | `origin_not_allowed` | 403 | The `Origin` header is not in the allow-list of the app. |
+        | `app_limit_reached` | 403 | The org has `apps_per_org` apps already. |
+        | `upstream_unavailable` | 502 | Zitadel did not take the change. Nothing changed. |
+        | `upstream_unavailable` | 503 | The Zitadel setup is not finished (no project id yet). Nothing changed. Retry after `Retry-After` seconds. |
+        | `recent_mfa_required` | 403 | Account delete without a sign-in with MFA in the last 15 minutes. |
       properties:
         type:
           type: string

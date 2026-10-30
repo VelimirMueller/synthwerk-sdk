@@ -89,5 +89,25 @@ assets/banner/       README banner (synthwerk/scripts/make-banner.py)
 
 ## Deploy and security
 
-- No deploy. Packages go to npmjs.com under `@synthwerk` with changesets and provenance (D-24), after the npm org exists.
+- No deploy. Packages go to npmjs.com under `@synthwerk` (D-24). Nothing is published yet.
+
+### Publish to npm
+
+The three packages are ready: `name`, `version`, `files`, `exports`, `license`, `repository`, `homepage`, `bugs` and `publishConfig.access: public` are set. `prepublishOnly` builds each package. Check the tarballs with `pnpm run pack:all` (writes `.pack/`, git-ignored).
+
+Before the first publish (owner only):
+
+1. Create the npm org `synthwerk` on npmjs.com. The scope `@synthwerk` is free today.
+2. `npm login` with an account in that org, with 2FA.
+
+Publish (one step, from a clean `main`):
+
+```bash
+pnpm release   # pnpm check, then pnpm -r publish --access public
+```
+
+- `pnpm -r publish` skips a version that is already on npm. Bump `version` in the package first.
+- Order: `tokens`, `sdk`, `ui-vue` (pnpm sorts the workspace).
+- After the first publish: add npm trusted publishing (GitHub OIDC) per package and a `release` environment, then publish from CI with provenance. The fleet exception GOV-ENV-10 goes away then.
+- Then synthwerk-widgets drops `vendor/` and uses the npm versions (synthwerk-sdk#18).
 - Report a vulnerability through GitHub private vulnerability reporting on this repo.

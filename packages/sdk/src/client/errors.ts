@@ -1,6 +1,7 @@
 // One error type for every SDK failure. Server codes come from RFC 9457 problem+json
 // (synthwerk-contracts `Problem`); client codes are listed in ClientErrorCode.
 // Never put a token, a prompt or a raw response body into message, detail or cause.
+import type { components as LlmComponents } from '../generated/llm.ts'
 
 /** Codes the SDK sets itself. Server codes (for example `quota_exhausted`) pass through as they are. */
 export type ClientErrorCode =
@@ -26,6 +27,12 @@ export type ErrorCode =
   | 'model_unavailable'
   | (string & {})
 
+/**
+ * The quota that ran out (`quota` of a `quota_exhausted` problem, synthwerk-contracts
+ * `QuotaExceeded`). `scope` `user`: the caller's own quota. `org`: the shared org quota.
+ */
+export type QuotaExceeded = LlmComponents['schemas']['QuotaExceeded']
+
 export interface SynthwerkErrorInit {
   code: ErrorCode
   title: string
@@ -35,6 +42,8 @@ export interface SynthwerkErrorInit {
   traceId?: string
   /** Seconds from `Retry-After`. */
   retryAfter?: number
+  /** `quota_exhausted` only: the quota that ran out. */
+  quota?: QuotaExceeded
   cause?: unknown
 }
 
@@ -57,6 +66,8 @@ export class SynthwerkError extends Error {
   readonly detail: string | undefined
   readonly traceId: string | undefined
   readonly retryAfter: number | undefined
+  /** `quota_exhausted` only: the scope, the limit and the reset time of the quota that ran out. */
+  readonly quota: QuotaExceeded | undefined
   /** True when the same call can succeed later without a change by the user. */
   readonly retryable: boolean
 
@@ -71,6 +82,7 @@ export class SynthwerkError extends Error {
     this.detail = init.detail
     this.traceId = init.traceId
     this.retryAfter = init.retryAfter
+    this.quota = init.quota
     this.retryable = RETRYABLE.has(init.code)
   }
 }
@@ -104,6 +116,24 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 const CODE = /^[a-z][a-z0-9_]*$/
+const MAX_QUOTA_LIMIT = 1_000_000_000_000
+
+/**
+ * The `quota` member of a problem, or `undefined` when it does not fit `QuotaExceeded`.
+ * A bad member never fails the error: the code and the status still count.
+ */
+function readQuota(value: unknown): QuotaExceeded | undefined {
+  if (!isRecord(value)) return undefined
+  const { scope, unit, limit, resets_at: resetsAt } = value
+  if (scope !== 'user' && scope !== 'org') return undefined
+  if (unit !== 'tokens') return undefined
+  if (typeof limit !== 'number' || !Number.isInteger(limit) || limit < 1) return undefined
+  if (limit > MAX_QUOTA_LIMIT) return undefined
+  if (typeof resetsAt !== 'string' || resetsAt.length > 40 || Number.isNaN(Date.parse(resetsAt))) {
+    return undefined
+  }
+  return { scope, unit, limit, resets_at: resetsAt }
+}
 
 /**
  * A SynthwerkError from a problem object, or `null` when the value is not a problem.
@@ -119,13 +149,15 @@ export function fromProblem(
   const { code, title, detail, trace_id: traceId } = value
   if (typeof code !== 'string' || !CODE.test(code) || code.length > 64) return null
   const problemStatus = status ?? (typeof value.status === 'number' ? value.status : null)
+  const quota = code === 'quota_exhausted' ? readQuota(value.quota) : undefined
   return new SynthwerkError({
     code,
     title: typeof title === 'string' ? title.slice(0, 128) : code,
     status: problemStatus,
     ...(typeof detail === 'string' ? { detail: detail.slice(0, 512) } : {}),
     ...(typeof traceId === 'string' ? { traceId } : {}),
-    ...(retryAfter === undefined ? {} : { retryAfter })
+    ...(retryAfter === undefined ? {} : { retryAfter }),
+    ...(quota === undefined ? {} : { quota })
   })
 }
 

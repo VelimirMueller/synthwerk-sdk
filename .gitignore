@@ -16,3 +16,4 @@ coverage/
 
 # Review screenshots (pnpm --filter @synthwerk/tokens screenshots)
 screenshots/
+.pack/

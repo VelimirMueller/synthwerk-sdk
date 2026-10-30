@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Synthwerk LLM gateway
-  version: 0.1.0
+  version: 0.5.0
   summary: Conversations and streamed answers. The M2 chat slice of synthwerk-llm.
   description: |
     The chat contract of synthwerk-llm (M2 spec #32, D-44).
@@ -10,6 +10,9 @@ info:
     - Send a message, get the answer as Server-Sent Events: `delta`, `usage`, `done`, or `error`.
     - Errors are RFC 9457 `application/problem+json` with a stable `code`.
     - Stream protocol: `docs/features/llm-chat-api.md`.
+    - Own data (synthwerk#41): `GET /v1/me/export` returns every row llm keeps about the caller, in every org. Identity calls it with the caller's token for `GET /v1/me/export` of identity. llm deletes the rows when it gets `dev.synthwerk.identity.user.deleted.v1`.
+    - AI settings (synthwerk#39): an owner or admin sets the model choice, the system prompt, the input length, a token cap per user and the temperature of the org with `/v1/ai-settings`. Every value stays inside the model aliases of the service and the plan of the org. A change emits `dev.synthwerk.llm.ai_settings.changed.v1`; identity shows it in the audit list.
+    - CORS (infra#21): llm answers CORS for the three widget chat routes (create, read, send). The chat widget runs on customer sites. See the description of each route.
   license:
     name: MIT
     identifier: MIT
@@ -19,14 +22,173 @@ info:
 tags:
   - name: conversations
     description: Conversations and their messages.
+  - name: me
+    description: The caller's own data.
+  - name: settings
+    description: The AI settings of the caller's org.
 security:
   - bearer: []
 paths:
+  /v1/ai-settings:
+    get:
+      operationId: llm.getAiSettings
+      summary: Get the AI settings of the org
+      description: |
+        The AI settings of the org the token acts in, and the bounds they must stay in (synthwerk#39).
+        - Needs the org role `owner` or `admin` in the token and an active stored membership (llm asks identity with the caller's token). A `member`, an `operator` and a widget token get 403.
+        - An org that never saved settings gets the defaults with `version` 0: the default alias, every alias of the service, the service system prompt, the service input limit, no extra token cap.
+        - `bounds` holds the aliases of the service, the input limit of the service and the per-user token limit of the org's plan.
+        - 503 `settings_unavailable`: llm cannot reach identity, or identity is not configured.
+      tags: [settings]
+      security:
+        - bearer: []
+      responses:
+        "200":
+          description: The AI settings and their bounds.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AiSettings"
+              example:
+                model: default
+                allowed_models: [default, small]
+                system_prompt: You answer questions about the shop. Answer briefly.
+                max_input_chars: 2000
+                user_tokens_per_day: 20000
+                temperature: 0.3
+                version: 3
+                updated_at: "2026-10-30T10:00:00Z"
+                bounds:
+                  models: [default, small]
+                  max_input_chars: 8000
+                  user_tokens_per_day: 50000
+                  system_prompt_max_chars: 4000
+                  temperature_max: 2
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "503":
+          $ref: "#/components/responses/SettingsUnavailable"
+    put:
+      operationId: llm.updateAiSettings
+      summary: Replace the AI settings of the org
+      description: |
+        Replaces every AI setting of the token's org in one step (synthwerk#39). Same access rules as `llm.getAiSettings`.
+        - `version` must be the version the caller read. Another version: 409 `version_conflict`, nothing changes. Read again and retry.
+        - `model` and every item of `allowed_models` must be an alias of the service (`bounds.models`). `allowed_models` must hold `model`. An org can never pick a model outside the service allow-list.
+        - `max_input_chars` must be at most `bounds.max_input_chars`. `user_tokens_per_day` must be at most `bounds.user_tokens_per_day` when the plan has a limit.
+        - `system_prompt` is plain text: line breaks and tabs are allowed, other control characters are refused. Empty means the service prompt.
+        - A value outside the bounds: 400 `invalid_request`; `detail` names the field.
+        - An absent `temperature` clears a stored one (the model default again); that is a change.
+        - A change emits `dev.synthwerk.llm.ai_settings.changed.v1` in the same transaction. The same values again change nothing: same version, no event.
+        - The next send of every user of the org uses the new values. A conversation whose model is no longer allowed gets 400 on its next send.
+      tags: [settings]
+      security:
+        - bearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateAiSettingsRequest"
+            example:
+              version: 2
+              model: default
+              allowed_models: [default, small]
+              system_prompt: You answer questions about the shop. Answer briefly.
+              max_input_chars: 2000
+              user_tokens_per_day: 20000
+              temperature: 0.3
+      responses:
+        "200":
+          description: The saved AI settings.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AiSettings"
+              example:
+                model: default
+                allowed_models: [default, small]
+                system_prompt: You answer questions about the shop. Answer briefly.
+                max_input_chars: 2000
+                user_tokens_per_day: 20000
+                temperature: 0.3
+                version: 3
+                updated_at: "2026-10-30T10:00:00Z"
+                bounds:
+                  models: [default, small]
+                  max_input_chars: 8000
+                  user_tokens_per_day: 50000
+                  system_prompt_max_chars: 4000
+                  temperature_max: 2
+        "400":
+          $ref: "#/components/responses/InvalidRequest"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          $ref: "#/components/responses/VersionConflict"
+        "503":
+          $ref: "#/components/responses/SettingsUnavailable"
+  /v1/me/export:
+    get:
+      operationId: llm.exportMe
+      summary: Export the own data
+      description: |
+        Every conversation, message and quota row of the caller, in every org (synthwerk#41).
+        - The owner comes from the token `sub` only. Rows of other users never appear, also not the shared org row of a quota.
+        - Every conversation llm still keeps is in it, also one marked deleted.
+        - Any signed-in user may call it with the Zitadel access token. A widget token (claim `synthwerk:origin`) gets 403: the export is for the user, not for an embedded widget.
+      tags: [me]
+      security:
+        - bearer: []
+      responses:
+        "200":
+          description: The export.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LlmExport"
+              example:
+                conversations:
+                  - id: 6f1c2d3e-4a5b-4c6d-8e7f-9a0b1c2d3e4f
+                    org_id: "396370208765350663"
+                    model: default
+                    created_at: "2026-10-23T09:00:00Z"
+                    messages:
+                      - id: 0199f3b0-1a2b-7c3d-8e4f-5a6b7c8d9e0f
+                        role: user
+                        content: What does pulse check?
+                        status: completed
+                        created_at: "2026-10-23T09:00:05Z"
+                      - id: 0199f3b0-1a2c-7c3d-8e4f-5a6b7c8d9e10
+                        role: assistant
+                        content: Pulse reads /readyz of every service.
+                        status: completed
+                        tokens_in: 12
+                        tokens_out: 9
+                        created_at: "2026-10-23T09:00:05Z"
+                quota_usage:
+                  - org_id: "396370208765350663"
+                    window_start: "2026-10-23"
+                    used: 21
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
   /v1/conversations:
     post:
       operationId: llm.createConversation
       summary: Create a conversation
-      description: Creates an empty conversation for the caller in the org of the token.
+      description: |
+        Creates an empty conversation for the caller in the org of the token.
+        - Without `model` the conversation gets the default model of the org (AI settings).
+        - A `model` the org does not allow: 400 `invalid_request`.
+        - CORS (infra#21): llm answers the preflight (`OPTIONS`, no token). An allowed origin with `Access-Control-Request-Method: POST` gets 204 with `Access-Control-Allow-Origin`, `Access-Control-Allow-Methods: POST`, `Access-Control-Allow-Headers: Authorization, Content-Type` and `Access-Control-Max-Age: 600`. Else 403 without CORS headers.
+        - Allowed origin: a first-party origin of llm's static list, or an origin that an app of an active org lists in identity. No `Access-Control-Allow-Credentials`.
+        - Every answer sends `Vary: Origin`. An allowed origin also gets `Access-Control-Allow-Origin` and `Access-Control-Expose-Headers: Retry-After`, refusals included.
       tags: [conversations]
       security:
         - bearer: []
@@ -47,6 +209,11 @@ paths:
               schema:
                 type: string
                 maxLength: 128
+            Vary:
+              description: Always `Origin`. The CORS headers depend on the request origin (infra#21).
+              schema:
+                type: string
+                maxLength: 32
           content:
             application/json:
               schema:
@@ -73,12 +240,21 @@ paths:
       description: |
         The conversation with its messages, oldest first.
         An unknown id and another owner's id both answer 404 with the same body.
+        - CORS (infra#21): llm answers the preflight (`OPTIONS`, no token). An allowed origin with `Access-Control-Request-Method: GET` gets 204 with `Access-Control-Allow-Origin`, `Access-Control-Allow-Methods: GET`, `Access-Control-Allow-Headers: Authorization, Content-Type` and `Access-Control-Max-Age: 600`. Else 403 without CORS headers.
+        - Allowed origin: a first-party origin of llm's static list, or an origin that an app of an active org lists in identity. No `Access-Control-Allow-Credentials`.
+        - Every answer sends `Vary: Origin`. An allowed origin also gets `Access-Control-Allow-Origin` and `Access-Control-Expose-Headers: Retry-After`, refusals included.
       tags: [conversations]
       security:
         - bearer: []
       responses:
         "200":
           description: The conversation.
+          headers:
+            Vary:
+              description: Always `Origin`. The CORS headers depend on the request origin (infra#21).
+              schema:
+                type: string
+                maxLength: 32
           content:
             application/json:
               schema:
@@ -117,6 +293,9 @@ paths:
         - Order of events: zero or more `delta`, then `usage`, then `done`. Or an `error` event at any point.
         - Cancel: the client closes the connection. The server stops the model call and keeps the partial answer.
         - Headers: `Cache-Control: no-store`, `X-Accel-Buffering: no`. A comment line (`: ping`) every 15 s keeps the connection open.
+        - CORS (infra#21): llm answers the preflight (`OPTIONS`, no token). An allowed origin with `Access-Control-Request-Method: POST` gets 204 with `Access-Control-Allow-Origin`, `Access-Control-Allow-Methods: POST`, `Access-Control-Allow-Headers: Authorization, Content-Type` and `Access-Control-Max-Age: 600`. Else 403 without CORS headers.
+        - Allowed origin: a first-party origin of llm's static list, or an origin that an app of an active org lists in identity. No `Access-Control-Allow-Credentials`.
+        - Every answer sends `Vary: Origin`. An allowed origin also gets `Access-Control-Allow-Origin` and `Access-Control-Expose-Headers: Retry-After`, refusals included.
       tags: [conversations]
       security:
         - bearer: []
@@ -152,6 +331,12 @@ paths:
             event: done
             data: {"message_id":"0199f3b0-1a2c-7c3d-8e4f-5a6b7c8d9e10","finish_reason":"stop"}
             ```
+          headers:
+            Vary:
+              description: Always `Origin`. The CORS headers depend on the request origin (infra#21).
+              schema:
+                type: string
+                maxLength: 32
           content:
             text/event-stream:
               schema:
@@ -251,7 +436,7 @@ components:
             status: 401
             code: unauthenticated
     Forbidden:
-      description: The token scope or origin does not allow the call. Code `forbidden`. The body is generic.
+      description: The token scope, role or origin does not allow the call. Code `forbidden`. The body is generic.
       content:
         application/problem+json:
           schema:
@@ -286,7 +471,54 @@ components:
     TooManyRequests:
       description: |
         - `too_many_streams`: the owner already has the max number of open streams (default 2).
-        - `quota_exhausted`: reserved (D-46). M2 has no quotas and never sends it. Clients must handle it already.
+        - `quota_exhausted`: the user or the org used up its token quota of the window (D-46, #33). The model sees no call.
+          The body holds `quota`: the scope that ran out, its limit and when the window resets.
+          `Retry-After` is the number of seconds until that reset.
+      headers:
+        Retry-After:
+          description: Seconds to wait before a retry.
+          schema:
+            type: integer
+            minimum: 0
+            maximum: 86400
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+          examples:
+            too_many_streams:
+              summary: The owner has the max number of open streams.
+              value:
+                type: https://schemas.synthwerk.dev/problems/too_many_streams
+                title: Too many streams
+                status: 429
+                code: too_many_streams
+            quota_exhausted:
+              summary: The user used up the token quota of the day.
+              value:
+                type: https://schemas.synthwerk.dev/problems/quota_exhausted
+                title: Quota exhausted
+                status: 429
+                code: quota_exhausted
+                quota:
+                  scope: user
+                  unit: tokens
+                  limit: 50000
+                  resets_at: "2026-10-24T00:00:00Z"
+    VersionConflict:
+      description: The AI settings changed since the caller read them. Code `version_conflict`. Nothing changed.
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+          example:
+            type: https://schemas.synthwerk.dev/problems/version_conflict
+            title: Version conflict
+            status: 409
+            code: version_conflict
+            detail: The settings changed. Read them again.
+    SettingsUnavailable:
+      description: llm cannot check the membership and the plan of the org now (identity down or not configured). Code `settings_unavailable`.
       headers:
         Retry-After:
           description: Seconds to wait before a retry.
@@ -299,10 +531,10 @@ components:
           schema:
             $ref: "#/components/schemas/Problem"
           example:
-            type: https://schemas.synthwerk.dev/problems/too_many_streams
-            title: Too many streams
-            status: 429
-            code: too_many_streams
+            type: https://schemas.synthwerk.dev/problems/settings_unavailable
+            title: Settings unavailable
+            status: 503
+            code: settings_unavailable
     ModelUnavailable:
       description: The model cannot answer now (provider down or busy). Code `model_unavailable`.
       headers:
@@ -322,6 +554,139 @@ components:
             status: 503
             code: model_unavailable
   schemas:
+    AiSystemPrompt:
+      type: string
+      maxLength: 4000
+      description: |
+        The system prompt of the org. Plain text, never HTML. Line breaks and tabs are allowed; other control characters are refused.
+        Empty: the system prompt of the service.
+    AiSettings:
+      type: object
+      additionalProperties: false
+      required: [model, allowed_models, system_prompt, max_input_chars, user_tokens_per_day, version, bounds]
+      description: |
+        The AI settings of one org (synthwerk#39). llm applies them to every create and send of the org.
+        The schema is closed. A new setting (for example AI tools) comes with a new spec minor version.
+      properties:
+        model:
+          $ref: "#/components/schemas/ModelAlias"
+        allowed_models:
+          type: array
+          minItems: 1
+          maxItems: 32
+          uniqueItems: true
+          description: The aliases the users of the org may pick. Holds `model`. Always a subset of `bounds.models`.
+          items:
+            $ref: "#/components/schemas/ModelAlias"
+        system_prompt:
+          $ref: "#/components/schemas/AiSystemPrompt"
+        max_input_chars:
+          type: integer
+          format: int32
+          minimum: 1
+          maximum: 8000
+          description: Max characters of one user message in this org. A longer message gets 413 `input_too_large`.
+        user_tokens_per_day:
+          type: integer
+          format: int64
+          minimum: 0
+          maximum: 1000000000000
+          description: |
+            Tokens one user may use in this org per UTC day, below the plan. `0`: the plan limit only.
+            The smaller of this cap and the plan limit applies.
+        temperature:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 2
+          description: Sampling temperature of the model. Absent means the model default.
+        version:
+          type: integer
+          format: int64
+          minimum: 0
+          description: Goes up by one on every saved change. `0` means the org never saved settings and gets the defaults.
+        updated_at:
+          type: string
+          format: date-time
+          maxLength: 40
+          description: Time of the last saved change. Absent with `version` 0.
+        bounds:
+          $ref: "#/components/schemas/AiSettingsBounds"
+    AiSettingsBounds:
+      type: object
+      additionalProperties: false
+      required: [models, max_input_chars, user_tokens_per_day, system_prompt_max_chars, temperature_max]
+      description: The limits the settings must stay in. The service and the org's plan set them, never the org.
+      properties:
+        models:
+          type: array
+          minItems: 1
+          maxItems: 32
+          uniqueItems: true
+          description: Every model alias of the service (the operator's allow-list).
+          items:
+            $ref: "#/components/schemas/ModelAlias"
+        max_input_chars:
+          type: integer
+          format: int32
+          minimum: 1
+          maximum: 8000
+          description: The input limit of the service.
+        user_tokens_per_day:
+          type: integer
+          format: int64
+          minimum: 0
+          maximum: 1000000000000
+          description: Tokens per user per UTC day of the org's plan (identity entitlements). `0` means no limit.
+        system_prompt_max_chars:
+          type: integer
+          format: int32
+          minimum: 1
+          maximum: 4000
+          description: Max characters of `system_prompt`.
+        temperature_max:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 2
+          description: Max `temperature`.
+    UpdateAiSettingsRequest:
+      type: object
+      additionalProperties: false
+      required: [version, model, allowed_models, system_prompt, max_input_chars, user_tokens_per_day]
+      description: Every AI setting of the org. Absent `temperature` means the model default.
+      properties:
+        version:
+          type: integer
+          format: int64
+          minimum: 0
+          description: The `version` the caller read.
+        model:
+          $ref: "#/components/schemas/ModelAlias"
+        allowed_models:
+          type: array
+          minItems: 1
+          maxItems: 32
+          uniqueItems: true
+          items:
+            $ref: "#/components/schemas/ModelAlias"
+        system_prompt:
+          $ref: "#/components/schemas/AiSystemPrompt"
+        max_input_chars:
+          type: integer
+          format: int32
+          minimum: 1
+          maximum: 8000
+        user_tokens_per_day:
+          type: integer
+          format: int64
+          minimum: 0
+          maximum: 1000000000000
+        temperature:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 2
     ModelAlias:
       type: string
       maxLength: 64
@@ -342,7 +707,7 @@ components:
           type: string
           minLength: 1
           maxLength: 8000
-          description: The user message. Plain text. Above the server limit the answer is 413.
+          description: The user message. Plain text. Above the input limit of the org (AI settings, at most the server limit) the answer is 413.
         model:
           $ref: "#/components/schemas/ModelAlias"
     Conversation:
@@ -494,6 +859,103 @@ components:
           const: error
         data:
           $ref: "#/components/schemas/Problem"
+    LlmExport:
+      type: object
+      additionalProperties: false
+      required: [conversations, quota_usage]
+      description: Every row llm keeps about one user. Identity embeds it in `UserExport` as the `data` of service `llm`.
+      properties:
+        conversations:
+          type: array
+          maxItems: 100000
+          description: Conversations of the user in every org, oldest first.
+          items:
+            $ref: "#/components/schemas/ExportConversation"
+        quota_usage:
+          type: array
+          maxItems: 100000
+          description: The user's own token use per org and UTC day, oldest first. Never the shared org row.
+          items:
+            $ref: "#/components/schemas/ExportQuotaUsage"
+    ExportConversation:
+      type: object
+      additionalProperties: false
+      required: [id, org_id, model, created_at, messages]
+      properties:
+        id:
+          type: string
+          format: uuid
+          maxLength: 36
+        org_id:
+          type: string
+          minLength: 1
+          maxLength: 64
+          pattern: "^[A-Za-z0-9_-]+$"
+          description: The org of the token that created the conversation (Zitadel org id).
+        model:
+          $ref: "#/components/schemas/ModelAlias"
+        created_at:
+          type: string
+          format: date-time
+          maxLength: 40
+        messages:
+          type: array
+          maxItems: 100000
+          description: Messages, oldest first.
+          items:
+            $ref: "#/components/schemas/ExportMessage"
+    ExportMessage:
+      type: object
+      additionalProperties: false
+      required: [id, role, content, status, created_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+          maxLength: 36
+        role:
+          $ref: "#/components/schemas/MessageRole"
+        content:
+          type: string
+          maxLength: 100000
+          description: Plain text. Never HTML.
+        status:
+          $ref: "#/components/schemas/MessageStatus"
+        tokens_in:
+          type: integer
+          format: int32
+          minimum: 0
+          description: Input tokens of the answer. Only on assistant messages that finished.
+        tokens_out:
+          type: integer
+          format: int32
+          minimum: 0
+          description: Output tokens of the answer. Only on assistant messages that finished.
+        created_at:
+          type: string
+          format: date-time
+          maxLength: 40
+    ExportQuotaUsage:
+      type: object
+      additionalProperties: false
+      required: [org_id, window_start, used]
+      properties:
+        org_id:
+          type: string
+          minLength: 1
+          maxLength: 64
+          pattern: "^[A-Za-z0-9_-]+$"
+          description: Zitadel org id.
+        window_start:
+          type: string
+          format: date
+          maxLength: 10
+          description: The UTC day.
+        used:
+          type: integer
+          format: int64
+          minimum: 0
+          description: Tokens the user used in the org that day.
     Problem:
       type: object
       additionalProperties: false
@@ -506,12 +968,14 @@ components:
         |---|---|---|
         | `invalid_request` | 400 | Body or parameter not valid. |
         | `unauthenticated` | 401 | Token missing or not valid. |
-        | `forbidden` | 403 | Scope or origin does not allow the call. |
+        | `forbidden` | 403 | Scope, role or origin does not allow the call. |
         | `not_found` | 404 | Unknown id or another owner's id. |
+        | `version_conflict` | 409 | The AI settings changed since the caller read them. |
         | `input_too_large` | 413 | Message above the input limit. |
         | `too_many_streams` | 429 | Owner has the max number of open streams. |
-        | `quota_exhausted` | 429 | Reserved (D-46). Not sent in M2. |
+        | `quota_exhausted` | 429 | User or org quota used up. `quota` names the scope and the reset. |
         | `model_unavailable` | 503 | Provider down or busy. Also as an `error` event mid-stream. |
+        | `settings_unavailable` | 503 | llm cannot check the membership and the plan for the AI settings now. |
       properties:
         type:
           type: string
@@ -545,3 +1009,34 @@ components:
           maxLength: 32
           pattern: "^[0-9a-f]{32}$"
           description: W3C trace id of the request, for support.
+        quota:
+          $ref: "#/components/schemas/QuotaExceeded"
+    QuotaExceeded:
+      type: object
+      additionalProperties: false
+      required: [scope, unit, limit, resets_at]
+      description: |
+        The quota that ran out. Only in a `quota_exhausted` problem.
+        No usage numbers of other users: a member sees the org limit, never the use of a peer.
+      properties:
+        scope:
+          type: string
+          enum: [user, org]
+          description: |
+            - `user`: the caller used up the own quota in this org.
+            - `org`: the org used up the shared quota of all its users.
+        unit:
+          type: string
+          enum: [tokens]
+          description: What the quota counts. Input plus output tokens of every answer.
+        limit:
+          type: integer
+          format: int64
+          minimum: 1
+          maximum: 1000000000000
+          description: Tokens per window for this scope.
+        resets_at:
+          type: string
+          format: date-time
+          maxLength: 40
+          description: Start of the next window (UTC). The quota is full again from then.

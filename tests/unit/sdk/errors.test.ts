@@ -113,4 +113,73 @@ describe('errors', () => {
     controller.abort()
     expect(fromFetchFailure(new Error('x'), controller.signal).code).toBe('aborted')
   })
+
+  const quotaProblem = (quota: unknown) => ({
+    type: 'https://schemas.synthwerk.dev/problems/quota_exhausted',
+    title: 'Quota exhausted',
+    status: 429,
+    code: 'quota_exhausted',
+    quota
+  })
+
+  it.each(['user', 'org'] as const)(
+    'fromResponse - quota_exhausted with %s quota - typed quota member',
+    async (scope) => {
+      const quota = { scope, unit: 'tokens', limit: 50000, resets_at: '2026-10-24T00:00:00Z' }
+      const error = await fromResponse(
+        new Response(JSON.stringify(quotaProblem(quota)), {
+          status: 429,
+          headers: { 'content-type': 'application/problem+json', 'retry-after': '60' }
+        })
+      )
+      expect(error.code).toBe('quota_exhausted')
+      expect(error.quota).toEqual(quota)
+      expect(error.retryAfter).toBe(60)
+    }
+  )
+
+  it('fromProblem - quota in an SSE error event - typed quota member', () => {
+    const quota = { scope: 'org', unit: 'tokens', limit: 1, resets_at: '2026-10-24T00:00:00Z' }
+    expect(fromProblem(quotaProblem(quota), null)?.quota).toEqual(quota)
+  })
+
+  it.each([
+    ['missing', undefined],
+    ['not an object', 'user'],
+    [
+      'unknown scope',
+      { scope: 'team', unit: 'tokens', limit: 1, resets_at: '2026-10-24T00:00:00Z' }
+    ],
+    ['unknown unit', { scope: 'user', unit: 'eur', limit: 1, resets_at: '2026-10-24T00:00:00Z' }],
+    ['limit 0', { scope: 'user', unit: 'tokens', limit: 0, resets_at: '2026-10-24T00:00:00Z' }],
+    [
+      'limit too large',
+      { scope: 'user', unit: 'tokens', limit: 1e13, resets_at: '2026-10-24T00:00:00Z' }
+    ],
+    [
+      'limit not an integer',
+      { scope: 'user', unit: 'tokens', limit: 1.5, resets_at: '2026-10-24T00:00:00Z' }
+    ],
+    ['resets_at not a date', { scope: 'user', unit: 'tokens', limit: 1, resets_at: 'soon' }],
+    [
+      'resets_at too long',
+      {
+        scope: 'user',
+        unit: 'tokens',
+        limit: 1,
+        resets_at: `2026-10-24T00:00:00Z${' '.repeat(30)}`
+      }
+    ],
+    ['resets_at not text', { scope: 'user', unit: 'tokens', limit: 1, resets_at: 1 }]
+  ])('fromProblem - quota %s - no quota, code kept', (_name, quota) => {
+    const error = fromProblem(quotaProblem(quota), 429)
+    expect(error?.code).toBe('quota_exhausted')
+    expect(error?.quota).toBeUndefined()
+  })
+
+  it('fromProblem - quota member on another code - ignored', () => {
+    const quota = { scope: 'user', unit: 'tokens', limit: 1, resets_at: '2026-10-24T00:00:00Z' }
+    const error = fromProblem({ ...quotaProblem(quota), code: 'too_many_streams' }, 429)
+    expect(error?.quota).toBeUndefined()
+  })
 })

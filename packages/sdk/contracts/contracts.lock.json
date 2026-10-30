@@ -1,14 +1,18 @@
 {
   "repository": "https://github.com/VelimirMueller/synthwerk-contracts",
-  "commit": "4991c3a737f63d53483d572c2208be17a68a4d77",
+  "commit": "8e2d7c43356331a45a5541e38c07151a731b69e8",
   "files": {
     "llm.yaml": {
       "path": "openapi/llm/openapi.yaml",
-      "sha256": "e665f2caa09f6554217202994282a0931b3824ac94b7c32ee070b316683e37c3"
+      "sha256": "317037d29d88406f9f21bcad7e68636d89b31d9175ced9d49bc77d00f4ef46f1"
     },
     "identity.yaml": {
       "path": "openapi/identity/openapi.yaml",
-      "sha256": "76a1e0c7511280dd16ca27504796ba16fe8d3990c0978605757de9212f945a2c"
+      "sha256": "a9a3b6dcfbd18f5cc1cb10a10f302d27a91c9f1e105efacfd9b4da08a72afb21"
+    },
+    "vision.yaml": {
+      "path": "openapi/vision/openapi.yaml",
+      "sha256": "bca3926db09a6fc92fa6c4c68b10585acefd47efefdee9f907f198614e646f8e"
     }
   }
 }

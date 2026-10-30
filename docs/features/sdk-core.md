@@ -5,24 +5,25 @@ status: beta
 epic: E3
 owner: sdk
 paths: ["packages/sdk/src/**", "packages/sdk/scripts/**"]
-api: ["GET /identity/v1/me", "GET /identity/v1/orgs", "POST /identity/v1/orgs", "GET /identity/v1/orgs/{orgId}", "POST /llm/v1/conversations", "GET /llm/v1/conversations/{id}", "POST /llm/v1/conversations/{id}/messages"]
+api: ["GET /identity/v1/me", "POST /identity/v1/apps/{appId}/widget-tokens", "POST /vision/v1/classifications", "POST /vision/v1/images", "GET /identity/v1/orgs", "POST /identity/v1/orgs", "GET /identity/v1/orgs/{orgId}", "POST /llm/v1/conversations", "GET /llm/v1/conversations/{id}", "POST /llm/v1/conversations/{id}/messages"]
 events: []
 mcp: []
-updated: 2026-10-28
+updated: 2026-10-30
 ---
 
 # SDK core (sign-in, typed client, chat stream)
 
 > **In 30 seconds**
-> - `@synthwerk/sdk` 0.1.0 is the framework-free core for the browser and Node 24.
+> - `@synthwerk/sdk` 0.2.0 is the framework-free core for the browser and Node 24.
 > - Token mode: the host page or the widget hands in a token getter. The SDK never stores a token.
 > - `sw.api` is a typed client generated from a pinned `synthwerk-contracts` commit.
 > - `sw.llm.chat()` streams an answer as typed events and maps 401, quota, offline and stall errors.
-> - The chat widget (#34) builds on this package. It has no own HTTP, auth or SSE code.
+> - `requestWidgetToken()` trades a user token for a widget token. `sw.api.vision` classifies and uploads images.
+> - The chat and vision widgets build on this package. They have no own HTTP, auth or SSE code.
 
 ## What it does
 
-- `createSynthwerk(options)` returns `{ auth, api, llm }`. This is the whole public surface of 0.1.0.
+- `createSynthwerk(options)` returns `{ auth, api, llm }`. With `requestWidgetToken()` this is the whole public surface of 0.2.0.
 - Only `token` mode exists. PKCE comes in 0.2.0. TanStack adapters come in M5 (#51).
 - The SDK calls `getToken` before every request. It keeps no token copy after the request.
 - Parallel requests call `getToken({ refresh: false })` in parallel: cache the token in the host.
@@ -30,23 +31,29 @@ updated: 2026-10-28
 - With no token, a call throws `unauthenticated` before any network call (D-30).
 - On 401 it asks `getToken({ refresh: true })` once and retries once. Parallel 401s share one refresh.
 - A second 401 ends the session: `onChange(null)`.
-- `sw.api.identity` and `sw.api.llm` are `openapi-fetch` clients. Paths and bodies are typed from the contracts.
+- `sw.api.identity`, `sw.api.llm` and `sw.api.vision` are `openapi-fetch` clients. Paths and bodies are typed from the contracts.
+- `sw.api.vision` sends a body with a Blob (`{ image }`) as `multipart/form-data`, other bodies as JSON. Vision errors are FastAPI `{detail}` bodies: branch on the status.
+- `requestWidgetToken({ identityUrl, appId, userToken })` calls identity `POST /v1/apps/{appId}/widget-tokens` with the user token. It does not use `getToken`. No cookies, no HTTP cache.
+- A `quota_exhausted` error has `quota`: `scope` (`user` or `org`), `unit`, `limit` and `resets_at`.
 - `sw.llm.chat()` sends `POST /v1/conversations/{id}/messages` and reads the SSE answer with `fetch`.
 - Chat events follow the contracts (D-44): `delta`, `usage`, `done`, `error`. Unknown event names are ignored.
-- Service URLs default to the edge routes: `<apiUrl>/identity` and `<apiUrl>/llm`.
+- Service URLs default to the edge routes: `<apiUrl>/identity`, `<apiUrl>/llm` and `<apiUrl>/vision`.
 
 ### Public API
 
 | Export | Kind | Use |
 |---|---|---|
 | `createSynthwerk(options)` | function | Makes a client. |
+| `requestWidgetToken(request)` | function | Trades a user token for a widget token: `{ data }` or `{ error, response }`. |
+| `WidgetToken`, `WidgetTokenGrant`, `WidgetTokenRequest`, `WidgetTokenResult` | type | Widget token call. |
 | `Synthwerk`, `SynthwerkOptions` | type | The client and its options. |
 | `GetToken`, `TokenAuthOptions`, `AuthOptions`, `Auth`, `AuthUser` | type | Token mode. |
 | `ChatEvent`, `ChatRequest`, `ChatOptions`, `SendMessageRequest`, `Usage`, `FinishReason` | type | Chat stream. |
 | `SynthwerkError`, `isSynthwerkError` | class, function | One error type. |
-| `ErrorCode`, `ClientErrorCode`, `SynthwerkErrorInit` | type | Error codes. |
+| `ErrorCode`, `ClientErrorCode`, `SynthwerkErrorInit`, `QuotaExceeded` | type | Error codes and the quota member. |
 | `Conversation`, `Message`, `Problem`, `Me`, `Org`, `Role` | type | Contract schemas. |
-| `LlmPaths`, `IdentityPaths` | type | Generated OpenAPI paths. |
+| `Classification`, `ScoredLabel`, `ScoredTopic`, `Correction`, `VisionImage`, `VisionError` | type | Vision contract schemas. |
+| `LlmPaths`, `IdentityPaths`, `VisionPaths` | type | Generated OpenAPI paths. |
 
 | `sw.` member | Result |
 |---|---|
@@ -56,11 +63,12 @@ updated: 2026-10-28
 | `auth.getAccessToken()` | The token from `getToken`, or `null`. |
 | `auth.onChange(cb)` | `cb(user)` when the subject changes or the session ends. Returns unsubscribe. |
 | `api.identity`, `api.llm` | `{ data, error, response }` per call. `error` is the problem body. |
+| `api.vision` | `{ data, error, response }` per call. `error` is the FastAPI `{detail}` body. |
 | `llm.chat(req, { signal, stallTimeoutMs })` | `AsyncIterable<ChatEvent>`. |
 
 ## How to use
 
-1. Install the package (workspace only in 0.1.0: not on npm yet).
+1. Install the package (not on npm yet: the widgets vendor it from a commit).
 2. Make a client with the token getter of the host:
 
    ```ts
@@ -93,7 +101,16 @@ updated: 2026-10-28
    ```
 
 5. Stop an answer with `controller.abort()`, or `break` the loop. Both close the connection.
-6. Move the contracts pin: change `commit` in `packages/sdk/contracts/contracts.lock.json`, run `pnpm --filter @synthwerk/sdk codegen:sync <contracts clone>`, commit the specs and `src/generated/`.
+6. A widget: get its token from identity with the user token, then classify an image:
+
+   ```ts
+   const result = await requestWidgetToken({ identityUrl: `${apiUrl}/identity`, appId, userToken })
+   if (result.response.status === 401) signedOut()        // user token no longer valid
+   // getToken of createSynthwerk returns result.data.token (cache it until expiresIn)
+   const { data, response } = await sw.api.vision.POST('/v1/classifications', { body: { image } })
+   ```
+
+7. Move the contracts pin: change `commit` in `packages/sdk/contracts/contracts.lock.json`, run `pnpm --filter @synthwerk/sdk codegen:sync <contracts clone>`, commit the specs and `src/generated/`.
 
 ## Rules and limits
 
@@ -108,7 +125,9 @@ updated: 2026-10-28
 | `traceparent`, `X-Request-ID` | off by default; opt in with `tracing: true`. The edge CORS allows only `Authorization` and `Content-Type` |
 | `Idempotency-Key` | not sent: the gateway and the edge CORS do not support it yet |
 | Bundle size | 6.9 KB gzip (core + token auth + chat, minified ESM); budget 12 KB |
-| Contracts pin | `synthwerk-contracts` `4991c3a737f63d53483d572c2208be17a68a4d77` |
+| Contracts pin | `synthwerk-contracts` `8e2d7c43356331a45a5541e38c07151a731b69e8` (identity, llm, vision) |
+| Widget token | `expiresIn` capped at 900 s; a token longer than 4096 characters counts as a bad answer (`bad_gateway`) |
+| `format: binary` | generated as `Blob` (codegen transform) |
 
 ## Events
 
@@ -118,12 +137,12 @@ updated: 2026-10-28
 
 ## Errors
 
-Every failure is a `SynthwerkError` with `code`, `status`, `title`, `detail`, `traceId`, `retryAfter`, `retryable`.
+Every failure is a `SynthwerkError` with `code`, `status`, `title`, `detail`, `traceId`, `retryAfter`, `quota`, `retryable`.
 
 | Status | Problem type | Cause |
 |---|---|---|
 | 401 | `unauthenticated` | No token, `signOut()`, or 401 after one refresh. Also thrown before any network call. |
-| 429 | `quota_exhausted` | Server code, passed through with `retryAfter`. Not retryable. |
+| 429 | `quota_exhausted` | Server code, passed through with `retryAfter` and the typed `quota` (`scope` `user` or `org`, `unit`, `limit`, `resets_at`). Not retryable. |
 | 429 | `too_many_streams` | Server code. Retryable. |
 | 503 | `model_unavailable` | Server code, before the first byte (thrown) or as an `error` event. Retryable. |
 | any | any other server `code` | Passed through as it is. Clients must accept unknown codes. |
@@ -157,6 +176,13 @@ Every failure is a `SynthwerkError` with `code`, `status`, `title`, `detail`, `t
 - `tests/unit/sdk/errors.test.ts` — `fromFetchFailure - TypeError while navigator is offline - code offline`
 - `tests/unit/sdk/errors.test.ts` — `fromResponse - HTML 429 from a proxy - code rate_limited, retryable`
 - `tests/unit/sdk/errors.test.ts` — `fromResponse - body status differs from HTTP status - HTTP status wins`
+- `tests/unit/sdk/errors.test.ts` — `fromResponse - quota_exhausted with user quota - typed quota member`
+- `tests/unit/sdk/errors.test.ts` — `fromProblem - quota resets_at not a date - no quota, code kept`
+- `tests/unit/sdk/widget-token.test.ts` — `201 - POST to the app route with the user bearer, no cookies, no cache - data`
+- `tests/unit/sdk/widget-token.test.ts` — `401 - no throw - error body and response for the caller`
+- `tests/unit/sdk/widget-token.test.ts` — `201 body no token - throws bad_gateway 502`
+- `tests/unit/sdk/vision.test.ts` — `classify - POST <apiUrl>/vision with the widget bearer and a multipart image part`
+- `tests/unit/sdk/vision.test.ts` — `upload - 201 - typed stored image; 507 - FastAPI error body`
 - `tests/unit/sdk/transport.test.ts` — `api - create conversation - POST to <apiUrl>/llm with bearer, typed data`
 - `tests/unit/sdk/codegen.test.ts` — `src/generated/*.ts - regenerated - no drift`
 - `tests/integration/sdk/chat.test.ts` — `chat - mock gateway streams 20 tokens then done - text equals joined tokens`
@@ -169,4 +195,5 @@ Every failure is a `SynthwerkError` with `code`, `status`, `title`, `detail`, `t
 
 | Date | Change |
 |---|---|
+| 2026-10-30 | 0.2.0 (#18, #19): `requestWidgetToken()`, typed `quota` on `SynthwerkError`, `sw.api.vision`. Contracts pin moved. |
 | 2026-10-28 | First version (#35): token mode, typed client from contracts `4991c3a`, chat stream. |
