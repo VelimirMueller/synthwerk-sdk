@@ -8,6 +8,13 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Thi
 
 ### Added
 
+- **`@synthwerk/react` 0.1.0 and `@synthwerk/vue` 0.1.0 (synthwerk#51).** Not on npm yet. See `docs/features/sdk-adapters.md`.
+  - One provider (React) or plugin (Vue) holds one SDK client. `useAuth`, `useChat` (token by token, abort on unmount), `useClassify`.
+  - SSR safe, tree-shakable, no UI. Examples in `examples/react` and `examples/vue`.
+- **`@synthwerk/sdk` 0.3.0 (synthwerk#51).** The framework-free core of the adapters.
+  - `createWidgetSession()`: the widget-token session of synthwerk-widgets, moved to core (cache per user token, one trade per user token, reset on user switch).
+  - `createSynthwerkApp()`, `createChatStore()`, `createClassifyStore()`, `toErrorState()`, `errorFromResult()`.
+  - TanStack Query options without a dependency: `meQuery`, `conversationQuery`, `classifyMutation`, `synthwerkKeys`.
 - **`@synthwerk/sdk` 0.2.0 (#18, #19).**
   - `requestWidgetToken()`: trades a user token for a widget token (identity `POST /v1/apps/{appId}/widget-tokens`).
   - `SynthwerkError.quota`: the typed `quota` member (`scope` `user` or `org`, `limit`, `resets_at`) of a `quota_exhausted` problem.

@@ -9,5 +9,17 @@
       "!!assets",
       "!!packages/sdk/src/generated"
     ]
-  }
+  },
+  "overrides": [
+    {
+      "includes": ["examples/**/*.vue"],
+      "linter": {
+        "rules": {
+          "correctness": {
+            "useHookAtTopLevel": "off"
+          }
+        }
+      }
+    }
+  ]
 }

@@ -41,9 +41,19 @@ packages/sdk/
               llm/ (chat, sse, events), generated/ (openapi-typescript output, never edited)
   contracts/  synthwerk-contracts specs at the pinned commit + contracts.lock.json
   scripts/    codegen.ts (specs -> src/generated; --sync copies from a contracts clone)
+              app/ (createSynthwerkApp), state/ (chat, classify, error states, TanStack options),
+              identity/widget-session.ts (user token -> widget token)
+packages/react/
+  src/        provider.ts (SynthwerkProvider), hooks.ts (useAuth, useChat, useClassify)
+packages/vue/
+  src/        plugin.ts (createSynthwerk, provideSynthwerk), composables.ts
+examples/            tiny React and Vue apps on the adapters (typechecked, not built)
 tests/unit/tokens/   contrast, CSS structure, token layers, theme rules, assets
 tests/unit/ui-vue/   components, tokens-only CSS, text contrast per theme, mode and group
-tests/unit/sdk/      auth, transport, errors, SSE and chat, codegen drift
+tests/unit/sdk/      auth, transport, errors, SSE and chat, codegen drift, widget session, stores
+tests/unit/react/    @synthwerk/react with React Testing Library
+tests/unit/vue/      @synthwerk/vue with @vue/test-utils
+tests/unit/adapters/ SSR render of both adapters in Node (no window)
 tests/integration/sdk/  chat over real HTTP against tests/support/mock-gateway.ts
 tools/biome-config/  vendored copy of @synthwerk/biome-config (see its README)
 assets/banner/       README banner (synthwerk/scripts/make-banner.py)
@@ -81,10 +91,11 @@ assets/banner/       README banner (synthwerk/scripts/make-banner.py)
 | Package | Epic | Content |
 |---|---|---|
 | `@synthwerk/tokens` | E0/E1 | 0.2.0: public look (D-41). Next: `patterns.css`, `oklch()` output. |
-| `@synthwerk/sdk` | E2 | Core client generated from synthwerk-contracts, auth modes, query keys. |
-| `@synthwerk/vue` | E2 | Vue 3.5 adapter. |
+| `@synthwerk/sdk` | E2 | 0.3.0: core client from synthwerk-contracts, token mode, adapter state, TanStack query options. |
+| `@synthwerk/vue` | E7 | 0.1.0: Vue 3.5 adapter (#51). |
 | `@synthwerk/ui-vue` | E1/E4 | `synthwerk-ui` for Vue. 0.1.0: first seven components. Next: patterns. |
-| `@synthwerk/react`, `@synthwerk/ui-react` | E7 | React adapter and patterns. |
+| `@synthwerk/react` | E7 | 0.1.0: React adapter (#51). No UI. |
+| `@synthwerk/ui-react` | E7 | React patterns. |
 | `create-synthwerk-app` | E7 | App scaffolder (React default, Vue option). |
 
 ## Deploy and security
@@ -93,7 +104,7 @@ assets/banner/       README banner (synthwerk/scripts/make-banner.py)
 
 ### Publish to npm
 
-The three packages are ready: `name`, `version`, `files`, `exports`, `license`, `repository`, `homepage`, `bugs` and `publishConfig.access: public` are set. `prepublishOnly` builds each package. Check the tarballs with `pnpm run pack:all` (writes `.pack/`, git-ignored).
+The five packages are ready: `name`, `version`, `files`, `exports`, `license`, `repository`, `homepage`, `bugs` and `publishConfig.access: public` are set. `prepublishOnly` builds each package. Check the tarballs with `pnpm run pack:all` (writes `.pack/`, git-ignored).
 
 Before the first publish (owner only):
 
@@ -107,7 +118,7 @@ pnpm release   # pnpm check, then pnpm -r publish --access public
 ```
 
 - `pnpm -r publish` skips a version that is already on npm. Bump `version` in the package first.
-- Order: `tokens`, `sdk`, `ui-vue` (pnpm sorts the workspace).
+- Order: `tokens`, `sdk`, then `ui-vue`, `react`, `vue` (pnpm sorts the workspace).
 - After the first publish: add npm trusted publishing (GitHub OIDC) per package and a `release` environment, then publish from CI with provenance. The fleet exception GOV-ENV-10 goes away then.
 - Then synthwerk-widgets drops `vendor/` and uses the npm versions (synthwerk-sdk#18).
 - Report a vulnerability through GitHub private vulnerability reporting on this repo.

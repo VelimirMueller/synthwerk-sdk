@@ -1,0 +1,55 @@
+{
+  "name": "@synthwerk/react",
+  "version": "0.1.0",
+  "description": "React adapter of the Synthwerk SDK: one provider, hooks for sign-in, chat stream and vision classify. No UI",
+  "license": "MIT",
+  "author": "Velimir Mueller",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/VelimirMueller/synthwerk-sdk.git",
+    "directory": "packages/react"
+  },
+  "homepage": "https://github.com/VelimirMueller/synthwerk-sdk/tree/main/packages/react#readme",
+  "bugs": {
+    "url": "https://github.com/VelimirMueller/synthwerk-sdk/issues"
+  },
+  "keywords": [
+    "synthwerk",
+    "react",
+    "sdk",
+    "chat",
+    "streaming"
+  ],
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "prepublishOnly": "pnpm run build"
+  },
+  "dependencies": {
+    "@synthwerk/sdk": "workspace:^"
+  },
+  "peerDependencies": {
+    "react": "^18.3.0 || ^19.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "19.3.0",
+    "react": "19.3.1"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}
