@@ -1,0 +1,3 @@
+# pnpm settings of this app.
+packages:
+  - .
