@@ -8,6 +8,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Thi
 
 ### Added
 
+- **`create-synthwerk-app` 0.1.0 (synthwerk#52).** Not on npm yet. See `docs/features/create-synthwerk-app.md`.
+  - Scaffolds a Vite app that signs in (OIDC code + PKCE) and chats. React is the default; `--template vue` gives Vue.
+  - `--local` packs `@synthwerk/*` from a checkout and points pnpm `overrides` at the tarballs until the npm publish.
+  - CI makes an app from each template and runs its typecheck, tests and build.
 - **`@synthwerk/react` 0.1.0 and `@synthwerk/vue` 0.1.0 (synthwerk#51).** Not on npm yet. See `docs/features/sdk-adapters.md`.
   - One provider (React) or plugin (Vue) holds one SDK client. `useAuth`, `useChat` (token by token, abort on unmount), `useClassify`.
   - SSR safe, tree-shakable, no UI. Examples in `examples/react` and `examples/vue`.

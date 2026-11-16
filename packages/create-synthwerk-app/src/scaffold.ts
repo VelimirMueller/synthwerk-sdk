@@ -3,7 +3,7 @@
 import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { basename, dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import type { Template } from './args.ts'
+import type { EnvValues, Template } from './args.ts'
 
 /** The templates folder next to `src/` and `dist/`. */
 export const templatesDir = fileURLToPath(new URL('../templates/', import.meta.url))
@@ -13,8 +13,8 @@ export interface ScaffoldOptions {
   dir: string
   template: Template
   cwd: string
-  apiUrl?: string | undefined
-  appId?: string | undefined
+  /** Values for `.env.local`. Nothing given: no `.env.local`. */
+  env?: EnvValues
   /** Source of the templates. Tests set it. */
   from?: string
 }
@@ -62,10 +62,22 @@ function copyTree(from: string, to: string, rel: string, files: string[]): void 
   }
 }
 
-export function envLocal(apiUrl: string | undefined, appId: string | undefined): string | null {
+const envNames: Record<keyof EnvValues, string> = {
+  apiUrl: 'VITE_SYNTHWERK_API_URL',
+  authUrl: 'VITE_SYNTHWERK_AUTH_URL',
+  clientId: 'VITE_SYNTHWERK_CLIENT_ID',
+  projectId: 'VITE_SYNTHWERK_PROJECT_ID'
+}
+
+/** The `.env.local` text for the given values, or `null` when none is set. */
+export function envLocal(env: EnvValues = {}): string | null {
   const lines: string[] = []
-  if (apiUrl) lines.push(`VITE_SYNTHWERK_API_URL=${apiUrl}`)
-  if (appId) lines.push(`VITE_SYNTHWERK_APP_ID=${appId}`)
+  for (const key of Object.keys(envNames) as (keyof EnvValues)[]) {
+    const value = env[key]
+    if (value === undefined || value === '') continue
+    if (/[\r\n]/.test(value)) throw new Error(`${envNames[key]} must be one line`)
+    lines.push(`${envNames[key]}=${value}`)
+  }
   return lines.length ? `${lines.join('\n')}\n` : null
 }
 
@@ -86,7 +98,7 @@ export function scaffold(options: ScaffoldOptions): Scaffolded {
   manifest.name = name
   writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`)
 
-  const env = envLocal(options.apiUrl, options.appId)
+  const env = envLocal(options.env)
   if (env) {
     writeFileSync(join(root, '.env.local'), env)
     files.push('.env.local')

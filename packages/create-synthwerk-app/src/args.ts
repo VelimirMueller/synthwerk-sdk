@@ -7,17 +7,24 @@ export type Template = (typeof templates)[number]
 export const DEFAULT_DIR = 'synthwerk-app'
 export const DEFAULT_TEMPLATE: Template = 'react'
 
-/** What the flags say. `undefined` means: not given, ask (interactive) or use the default. */
-export interface Flags {
+/** The values the scaffold writes to `.env.local`. All optional. */
+export interface EnvValues {
+  apiUrl?: string | undefined
+  authUrl?: string | undefined
+  clientId?: string | undefined
+  projectId?: string | undefined
+}
+
+/** What the flags say. `undefined` means: not given, ask (terminal) or use the default. */
+export interface Flags extends EnvValues {
   dir: string | undefined
   template: Template | undefined
-  apiUrl: string | undefined
-  appId: string | undefined
-  /** Link the packages of a synthwerk-sdk checkout instead of npm. */
+  /** Pack the packages of a synthwerk-sdk checkout instead of npm. */
   local: boolean
   /** The synthwerk-sdk checkout for `--local`. Default: the checkout this CLI runs from. */
   sdkDir: string | undefined
-  install: boolean | undefined
+  /** Run `pnpm install` after the scaffold. */
+  install: boolean
   /** Never ask: use defaults for what the flags leave open. */
   yes: boolean
 }
@@ -33,9 +40,10 @@ export const usage = `Usage: pnpm create synthwerk-app [dir] [options]
 Options:
   -t, --template <react|vue>  App template (default: react)
       --api-url <url>         Edge base URL, written to .env.local
-      --app-id <uuid>         App id for vision, written to .env.local
+      --auth-url <url>        OIDC issuer (Zitadel), written to .env.local
+      --client-id <id>        OIDC client id of the app, written to .env.local
+      --project-id <id>       Zitadel project id (API audience), written to .env.local
       --install               Run pnpm install after the scaffold
-      --no-install            Do not install (default without a terminal)
       --local                 Use the packages of a synthwerk-sdk checkout, not npm
       --sdk-dir <path>        The checkout for --local (default: the one this CLI runs from)
   -y, --yes                   Ask nothing; use defaults for missing options
@@ -68,26 +76,33 @@ export function parseFlags(argv: readonly string[]): Parsed {
       message: `Unknown template "${template}". Use one of: ${templates.join(', ')}`
     }
   }
-  if (values.install && values['no-install']) {
-    return { kind: 'error', message: 'Use --install or --no-install, not both' }
-  }
   if (values['sdk-dir'] !== undefined && !values.local) {
     return { kind: 'error', message: '--sdk-dir needs --local' }
   }
-  const apiUrl = values['api-url']
-  if (apiUrl !== undefined && !isHttpUrl(apiUrl)) {
-    return { kind: 'error', message: `--api-url must be an http(s) URL, got: ${apiUrl}` }
+  for (const flag of ['api-url', 'auth-url'] as const) {
+    const value = values[flag]
+    if (value !== undefined && !isHttpUrl(value)) {
+      return { kind: 'error', message: `--${flag} must be an http(s) URL, got: ${value}` }
+    }
+  }
+  for (const flag of ['client-id', 'project-id'] as const) {
+    const value = values[flag]
+    if (value !== undefined && !/^[\w.-]+$/.test(value)) {
+      return { kind: 'error', message: `--${flag} may hold letters, digits, ".", "_", "-" only` }
+    }
   }
   return {
     kind: 'run',
     flags: {
       dir: positionals[0],
       template,
-      apiUrl,
-      appId: values['app-id'],
+      apiUrl: values['api-url'],
+      authUrl: values['auth-url'],
+      clientId: values['client-id'],
+      projectId: values['project-id'],
       local: values.local ?? false,
       sdkDir: values['sdk-dir'],
-      install: values.install ? true : values['no-install'] ? false : undefined,
+      install: values.install ?? false,
       yes: values.yes ?? false
     }
   }
@@ -101,9 +116,10 @@ function read(argv: readonly string[]) {
     options: {
       template: { type: 'string', short: 't' },
       'api-url': { type: 'string' },
-      'app-id': { type: 'string' },
+      'auth-url': { type: 'string' },
+      'client-id': { type: 'string' },
+      'project-id': { type: 'string' },
       install: { type: 'boolean' },
-      'no-install': { type: 'boolean' },
       local: { type: 'boolean' },
       'sdk-dir': { type: 'string' },
       yes: { type: 'boolean', short: 'y' },
@@ -113,7 +129,9 @@ function read(argv: readonly string[]) {
   })
 }
 
+/** True for an absolute http or https URL. A newline can never pass (it ends the env line). */
 export function isHttpUrl(value: string): boolean {
+  if (/\s/.test(value)) return false
   try {
     const url = new URL(value)
     return url.protocol === 'https:' || url.protocol === 'http:'

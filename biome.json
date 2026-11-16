@@ -12,7 +12,7 @@
   },
   "overrides": [
     {
-      "includes": ["examples/**/*.vue"],
+      "includes": ["examples/**/*.vue", "packages/create-synthwerk-app/templates/**/*.vue"],
       "linter": {
         "rules": {
           "correctness": {

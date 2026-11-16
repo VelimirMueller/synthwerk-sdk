@@ -1,0 +1,29 @@
+{
+  "name": "synthwerk-app",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "typecheck": "vue-tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@synthwerk/tokens": "^0.3.0",
+    "@synthwerk/ui-vue": "^0.1.0",
+    "@synthwerk/vue": "^0.1.0",
+    "oidc-client-ts": "^3.5.0",
+    "vue": "^3.5.43"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^6.0.11",
+    "@vue/test-utils": "^2.5.1",
+    "happy-dom": "^20.14.5",
+    "typescript": "~6.0.3",
+    "vite": "^8.3.6",
+    "vitest": "^5.0.3",
+    "vue-tsc": "^3.3.14"
+  }
+}

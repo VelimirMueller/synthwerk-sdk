@@ -1,0 +1,9 @@
+# Copy to .env.local and fill in. Vite reads VITE_* values at dev and build time.
+# Edge base URL: the SDK calls <url>/identity and <url>/llm.
+VITE_SYNTHWERK_API_URL=http://localhost:8080
+# OIDC issuer (Zitadel) and the client id of this app (user agent app, PKCE, no secret).
+# Allowed redirect URI in Zitadel: the app origin with a slash, for example http://localhost:5173/
+VITE_SYNTHWERK_AUTH_URL=http://auth.localhost:8080
+VITE_SYNTHWERK_CLIENT_ID=
+# Optional: Zitadel project id of the Synthwerk API (adds the API audience and role scopes).
+VITE_SYNTHWERK_PROJECT_ID=

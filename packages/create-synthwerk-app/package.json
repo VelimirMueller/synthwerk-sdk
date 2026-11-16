@@ -1,7 +1,7 @@
 {
   "name": "create-synthwerk-app",
   "version": "0.1.0",
-  "description": "Scaffold a Synthwerk app: Vite with React or Vue, sign-in, streamed chat and vision. `pnpm create synthwerk-app`",
+  "description": "Scaffold a Synthwerk app: Vite with React or Vue, OIDC sign-in and a streamed chat. `pnpm create synthwerk-app`",
   "license": "MIT",
   "author": "Velimir Mueller",
   "repository": {

@@ -89,8 +89,11 @@ jobs:
       stack: node
       # The root is a private workspace without a version, so the default root pack fails.
       # Pack every workspace package instead (CI-BUILD-04).
+      # check:templates makes an app from each create-synthwerk-app template and runs its
+      # typecheck, tests and build against the packed workspace packages (synthwerk#52).
       command: >-
         pnpm run --if-present build &&
+        pnpm --filter create-synthwerk-app run check:templates &&
         mkdir -p "$RUNNER_TEMP/pack" &&
         pnpm -r pack --pack-destination "$RUNNER_TEMP/pack"
 
