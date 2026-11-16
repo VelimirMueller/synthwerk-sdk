@@ -38,6 +38,9 @@ export function createOidcAuth(config: AppConfig, location: Location = window.lo
     post_logout_redirect_uri: redirectUri,
     response_type: 'code',
     scope: scopes(config.projectId),
+    // The PKCE state must survive the redirect: localStorage (the oidc-client-ts default).
+    stateStore: new WebStorageStateStore({ store: window.localStorage }),
+    // The tokens never touch storage: memory only.
     userStore: new WebStorageStateStore({ store: new InMemoryWebStorage() }),
     automaticSilentRenew: false
   })

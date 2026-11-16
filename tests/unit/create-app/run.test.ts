@@ -79,6 +79,11 @@ describe('create-synthwerk-app run', () => {
     await run(['x'], t.io)
     expect(await run(['x'], t.io)).toBe(1)
     expect(t.err.at(-1)).toMatch(/not empty/)
+    // A failure after the scaffold (an unbuilt checkout) names the folder to delete.
+    const repo = fakeCheckout(join(t.cwd, 'repo'), false)
+    expect(await run(['y', '--local', '--sdk-dir', repo], t.io)).toBe(1)
+    expect(t.err.at(-2)).toMatch(/not built/)
+    expect(t.err.at(-1)).toMatch(/Delete .*y before you try again/)
     expect(await run(['--help'], t.io)).toBe(0)
     expect(await run(['--version'], t.io)).toBe(0)
     expect(t.out).toContain(version)

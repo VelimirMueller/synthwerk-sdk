@@ -32,7 +32,8 @@ export function toPackageName(dir: string): string {
     .replace(/[^a-z0-9._~-]+/g, '-')
     .replace(/^[._-]+/, '')
     .replace(/-+$/, '')
-  return name === '' ? 'synthwerk-app' : name.slice(0, 214)
+  const short = name.slice(0, 214).replace(/[._-]+$/, '')
+  return short === '' ? 'synthwerk-app' : short
 }
 
 /** `_gitignore` → `.gitignore`. Other names stay. */
@@ -97,7 +98,14 @@ export function scaffold(options: ScaffoldOptions): Scaffolded {
 
   const name = toPackageName(root)
   const manifestPath = join(root, 'package.json')
-  const manifest = JSON.parse(readFileSync(manifestPath, 'utf8')) as Record<string, unknown>
+  let manifest: Record<string, unknown>
+  try {
+    manifest = JSON.parse(readFileSync(manifestPath, 'utf8')) as Record<string, unknown>
+  } catch (error) {
+    throw new Error(
+      `Template manifest ${manifestPath} is not valid JSON: ${(error as Error).message}`
+    )
+  }
   manifest.name = name
   writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`)
 

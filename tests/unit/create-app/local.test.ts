@@ -73,9 +73,10 @@ describe('create-synthwerk-app --local', () => {
     expect(() => linkLocal(app, 'react', repo, () => {})).toThrow(/already has/)
   })
 
-  it('shellArgs - quotes args with spaces for the Windows shell only', () => {
+  it('shellArgs - quotes args with spaces for the Windows shell only; refuses a quote', () => {
     expect(shellArgs(['pack', 'C:\\My Apps\\x'], true)).toEqual(['pack', '"C:\\My Apps\\x"'])
     expect(shellArgs(['a b'], false)).toEqual(['a b'])
+    expect(() => shellArgs(['a"b'], true)).toThrow(/Windows/)
   })
 
   it('tarball names and the overrides block follow pnpm pack', () => {

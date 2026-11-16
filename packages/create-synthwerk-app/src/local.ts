@@ -84,11 +84,16 @@ export function overridesBlock(packages: readonly PackageInfo[]): string {
 
 export type Exec = (command: string, args: readonly string[], cwd: string) => void
 
-/** Windows needs a shell for `pnpm.cmd`; the shell splits on spaces, so quote those args. */
+/**
+ * Windows needs a shell for `pnpm.cmd`. cmd.exe splits on spaces, so quote those args.
+ * A `"` cannot be escaped reliably there: refuse it.
+ */
 export function shellArgs(args: readonly string[], windows: boolean): string[] {
-  return windows
-    ? args.map((arg) => (/[\s"]/.test(arg) ? `"${arg.replaceAll('"', '""')}"` : arg))
-    : [...args]
+  if (!windows) return [...args]
+  return args.map((arg) => {
+    if (arg.includes('"')) throw new Error(`A path with " does not work on Windows: ${arg}`)
+    return /\s/.test(arg) ? `"${arg}"` : arg
+  })
 }
 
 export const execSync: Exec = (command, args, cwd) => {

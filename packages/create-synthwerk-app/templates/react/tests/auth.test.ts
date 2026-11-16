@@ -11,8 +11,15 @@ const manager = vi.hoisted(() => ({
 }))
 
 vi.mock('oidc-client-ts', () => ({
-  InMemoryWebStorage: class {},
-  WebStorageStateStore: class {},
+  InMemoryWebStorage: class {
+    readonly memory = true
+  },
+  WebStorageStateStore: class {
+    readonly store: unknown
+    constructor({ store }: { store: unknown }) {
+      this.store = store
+    }
+  },
   UserManager: class {
     constructor(settings: Record<string, unknown>) {
       manager.settings = settings
@@ -51,6 +58,14 @@ describe('createOidcAuth', () => {
       redirect_uri: `${window.location.origin}/`
     })
     expect(String(manager.settings?.scope)).toContain('urn:zitadel:iam:org:project:id:42:aud')
+  })
+
+  it('keeps the PKCE state in localStorage (it must survive the redirect), tokens in memory', () => {
+    createOidcAuth(config)
+    const store = (key: string) =>
+      (manager.settings?.[key] as { store: unknown } | undefined)?.store
+    expect(store('stateStore')).toBe(window.localStorage)
+    expect(store('userStore')).toMatchObject({ memory: true })
   })
 
   it('getToken: null when signed out, the cached token when fresh', async () => {

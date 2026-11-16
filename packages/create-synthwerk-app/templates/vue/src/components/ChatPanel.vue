@@ -21,7 +21,7 @@ async function submit() {
   if (text.trim() === '') return
   draft.value = ''
   await chat.send(text)
-  // A message that never reached the model comes back into an empty input once.
+  // A message that never reached the model comes back once, unless the user typed meanwhile.
   if (chat.failedText.value && draft.value === '') draft.value = chat.failedText.value
 }
 </script>

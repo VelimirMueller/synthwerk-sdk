@@ -72,6 +72,7 @@ describe('scaffold', () => {
   it('helpers - names, empty dirs, env lines', () => {
     expect(toPackageName('/x/__Hello World--')).toBe('hello-world')
     expect(toPackageName('/x/!!!')).toBe('synthwerk-app')
+    expect(toPackageName(`/x/${'a'.repeat(213)}.b`)).toBe('a'.repeat(213))
     expect(targetName('_gitignore')).toBe('.gitignore')
     expect(targetName('index.html')).toBe('index.html')
     const dir = temp()

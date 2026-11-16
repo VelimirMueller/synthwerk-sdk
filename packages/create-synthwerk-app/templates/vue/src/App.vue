@@ -17,6 +17,7 @@ async function signIn() {
 
 async function signOut() {
   await props.auth.signOut()
+  // Synchronous: the SDK drops the chat and shows signed_out at once.
   session.signOut()
 }
 </script>

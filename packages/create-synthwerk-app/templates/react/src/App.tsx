@@ -45,6 +45,7 @@ function App({ auth }: { auth: Auth }) {
 
   async function signOut() {
     await auth.signOut()
+    // Synchronous: the SDK drops the chat and shows signed_out at once.
     session.signOut()
   }
 

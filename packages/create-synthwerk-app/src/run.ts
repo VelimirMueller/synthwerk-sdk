@@ -67,6 +67,7 @@ export async function run(argv: readonly string[], io: RunIo): Promise<number> {
     return 2
   }
   const { flags } = parsed
+  let created: string | null = null
   try {
     const checkout = flags.local ? findCheckout(flags.sdkDir, io.cwd) : null
     const { dir, template } = await resolve(flags, io.ask)
@@ -81,6 +82,7 @@ export async function run(argv: readonly string[], io: RunIo): Promise<number> {
         projectId: flags.projectId
       }
     })
+    created = app.root
     io.log(`Created ${app.name} (${template}) in ${app.root}`)
     if (checkout) {
       const packages = linkLocal(app.root, template, checkout, io.exec)
@@ -105,6 +107,7 @@ export async function run(argv: readonly string[], io: RunIo): Promise<number> {
     return 0
   } catch (error) {
     io.error((error as Error).message)
+    if (created) io.error(`The app is not complete. Delete ${created} before you try again.`)
     return 1
   }
 }
