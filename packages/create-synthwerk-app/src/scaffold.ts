@@ -49,7 +49,7 @@ export function isEmptyDir(dir: string): boolean {
 function copyTree(from: string, to: string, rel: string, files: string[]): void {
   mkdirSync(to, { recursive: true })
   for (const entry of readdirSync(from, { withFileTypes: true })) {
-    if (entry.name === 'node_modules' || entry.name === 'dist') continue
+    if (entry.name === 'node_modules' || entry.name === 'dist' || entry.isSymbolicLink()) continue
     const source = join(from, entry.name)
     const name = targetName(entry.name)
     const dest = join(to, name)
@@ -75,8 +75,11 @@ export function envLocal(env: EnvValues = {}): string | null {
   for (const key of Object.keys(envNames) as (keyof EnvValues)[]) {
     const value = env[key]
     if (value === undefined || value === '') continue
-    if (/[\r\n]/.test(value)) throw new Error(`${envNames[key]} must be one line`)
-    lines.push(`${envNames[key]}=${value}`)
+    // Vite reads .env with dotenv-expand: quote the value, refuse what quoting cannot hold.
+    if (/[\r\n"\\$]/.test(value)) {
+      throw new Error(`${envNames[key]} must be one line without ", \\ or $`)
+    }
+    lines.push(`${envNames[key]}="${value}"`)
   }
   return lines.length ? `${lines.join('\n')}\n` : null
 }

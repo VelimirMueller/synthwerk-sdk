@@ -9,6 +9,7 @@ import {
   run,
   version
 } from '../../../packages/create-synthwerk-app/src/run.ts'
+import { fakeCheckout } from '../../support/fake-checkout.ts'
 
 const dirs: string[] = []
 afterEach(() => {
@@ -42,9 +43,13 @@ describe('create-synthwerk-app run', () => {
     expect(t.execs).toEqual([])
   })
 
-  it('--template vue --local --install - packs from this checkout, then installs', async () => {
+  it('--template vue --local --install - packs from the checkout, then installs', async () => {
     const t = io()
-    expect(await run(['app', '-t', 'vue', '--local', '--install'], t.io)).toBe(0)
+    // A fake built checkout: the unit stage runs before any build.
+    const repo = mkdtempSync(join(tmpdir(), 'csa-repo-'))
+    dirs.push(repo)
+    fakeCheckout(repo, true)
+    expect(await run(['app', '-t', 'vue', '--local', '--sdk-dir', repo, '--install'], t.io)).toBe(0)
     const app = join(t.cwd, 'app')
     expect(existsSync(join(app, 'src', 'App.vue'))).toBe(true)
     expect(t.execs.filter(([, args]) => args[0] === 'pack')).toHaveLength(4)

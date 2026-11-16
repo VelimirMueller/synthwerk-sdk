@@ -10,8 +10,12 @@ onScopeDispose(() => {
   live = false
 })
 onMounted(async () => {
-  const { data } = await sw.api.identity.GET('/v1/me')
-  if (live && data) label.value = `${data.org.name} · ${data.roles.join(', ')}`
+  try {
+    const { data } = await sw.api.identity.GET('/v1/me')
+    if (live && data) label.value = `${data.org.name} · ${data.roles.join(', ')}`
+  } catch {
+    // Offline or signed out: keep the plain label. The chat shows its own errors.
+  }
 })
 </script>
 

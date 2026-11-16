@@ -85,9 +85,13 @@ function Profile() {
   const [label, setLabel] = useState('Signed in')
   useEffect(() => {
     let live = true
-    void sw.api.identity.GET('/v1/me').then(({ data }) => {
-      if (live && data) setLabel(`${data.org.name} · ${data.roles.join(', ')}`)
-    })
+    sw.api.identity
+      .GET('/v1/me')
+      .then(({ data }) => {
+        if (live && data) setLabel(`${data.org.name} · ${data.roles.join(', ')}`)
+      })
+      // Offline or signed out: keep the plain label. The chat shows its own errors.
+      .catch(() => {})
     return () => {
       live = false
     }
@@ -102,13 +106,15 @@ function Chat() {
   async function submit(event: FormEvent) {
     event.preventDefault()
     const text = draft
+    if (text.trim() === '') return
     setDraft('')
     await chat.send(text)
   }
 
-  // A message that never reached the model comes back into the input once.
+  // A message that never reached the model comes back into an empty input once.
   useEffect(() => {
-    if (chat.failedText) setDraft(chat.failedText)
+    const failed = chat.failedText
+    if (failed) setDraft((current) => (current === '' ? failed : current))
   }, [chat.failedText])
 
   return (

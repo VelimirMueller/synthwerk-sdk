@@ -84,11 +84,19 @@ export function overridesBlock(packages: readonly PackageInfo[]): string {
 
 export type Exec = (command: string, args: readonly string[], cwd: string) => void
 
+/** Windows needs a shell for `pnpm.cmd`; the shell splits on spaces, so quote those args. */
+export function shellArgs(args: readonly string[], windows: boolean): string[] {
+  return windows
+    ? args.map((arg) => (/[\s"]/.test(arg) ? `"${arg.replaceAll('"', '""')}"` : arg))
+    : [...args]
+}
+
 export const execSync: Exec = (command, args, cwd) => {
-  const result = spawnSync(command, args, {
+  const windows = process.platform === 'win32'
+  const result = spawnSync(command, shellArgs(args, windows), {
     cwd,
     stdio: ['ignore', 'ignore', 'inherit'],
-    shell: process.platform === 'win32'
+    shell: windows
   })
   if (result.error) throw result.error
   if (result.status !== 0) {
@@ -103,10 +111,14 @@ export function linkLocal(
   checkout: string,
   exec: Exec = execSync
 ): PackageInfo[] {
+  const workspace = join(root, 'pnpm-workspace.yaml')
+  if (readFileSync(workspace, 'utf8').includes(OVERRIDES_MARKER)) {
+    throw new Error(`${workspace} already has the --local overrides block.`)
+  }
   const packages = readPackages(checkout, template)
   const dest = join(root, LOCAL_DIR)
   mkdirSync(dest, { recursive: true })
   for (const pkg of packages) exec('pnpm', ['pack', '--pack-destination', dest], pkg.dir)
-  appendFileSync(join(root, 'pnpm-workspace.yaml'), overridesBlock(packages))
+  appendFileSync(workspace, overridesBlock(packages))
   return packages
 }

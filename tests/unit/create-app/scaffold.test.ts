@@ -52,7 +52,7 @@ describe('scaffold', () => {
       env: { apiUrl: 'https://api.test', clientId: 'c1' }
     })
     expect(readFileSync(join(app.root, '.env.local'), 'utf8')).toBe(
-      'VITE_SYNTHWERK_API_URL=https://api.test\nVITE_SYNTHWERK_CLIENT_ID=c1\n'
+      'VITE_SYNTHWERK_API_URL="https://api.test"\nVITE_SYNTHWERK_CLIENT_ID="c1"\n'
     )
   })
 
@@ -80,5 +80,6 @@ describe('scaffold', () => {
     expect(isEmptyDir(dir)).toBe(true)
     expect(envLocal()).toBeNull()
     expect(() => envLocal({ apiUrl: 'https://a\nB=1' })).toThrow(/one line/)
+    expect(() => envLocal({ apiUrl: 'https://a/$HOME' })).toThrow(/one line/)
   })
 })

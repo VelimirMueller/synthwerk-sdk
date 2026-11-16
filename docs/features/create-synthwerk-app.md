@@ -57,7 +57,7 @@ updated: 2026-11-16
 | Node | 24 or later |
 | Package manager | pnpm |
 | Target directory | missing or empty (a `.git` folder alone counts as empty) |
-| Flag values in `.env.local` | one line; URLs `http` or `https` only |
+| Flag values in `.env.local` | one line in double quotes, without `"`, `\` or `$`; URLs `http` or `https` only |
 | `--local` | needs a built checkout (`dist` in each package) |
 | Token storage in the app | memory only |
 | App tests | mock of identity and llm; the real stack is tested in synthwerk-e2e |

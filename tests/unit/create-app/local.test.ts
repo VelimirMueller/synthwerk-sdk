@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
@@ -8,8 +8,10 @@ import {
   linkLocal,
   overridesBlock,
   ownCheckout,
+  shellArgs,
   tarballName
 } from '../../../packages/create-synthwerk-app/src/local.ts'
+import { fakeCheckout } from '../../support/fake-checkout.ts'
 
 const dirs: string[] = []
 function temp(): string {
@@ -21,23 +23,7 @@ afterEach(() => {
   for (const dir of dirs.splice(0)) rmSync(dir, { recursive: true, force: true })
 })
 
-/** A fake checkout: packages/<folder> with a manifest and, if built, a dist folder. */
-function checkout(built: boolean): string {
-  const root = temp()
-  const names: Record<string, string> = {
-    sdk: '@synthwerk/sdk',
-    react: '@synthwerk/react',
-    tokens: '@synthwerk/tokens'
-  }
-  for (const [folder, name] of Object.entries(names)) {
-    mkdirSync(join(root, 'packages', folder, built ? 'dist' : ''), { recursive: true })
-    writeFileSync(
-      join(root, 'packages', folder, 'package.json'),
-      JSON.stringify({ name, version: '1.2.3' })
-    )
-  }
-  return root
-}
+const checkout = (built: boolean) => fakeCheckout(temp(), built)
 
 describe('create-synthwerk-app --local', () => {
   it('this repo - is a synthwerk-sdk checkout', () => {
@@ -74,7 +60,22 @@ describe('create-synthwerk-app --local', () => {
   })
 
   it('unbuilt package - refused before any pack', () => {
-    expect(() => linkLocal(temp(), 'react', checkout(false), () => {})).toThrow(/not built/)
+    const app = temp()
+    writeFileSync(join(app, 'pnpm-workspace.yaml'), '')
+    expect(() => linkLocal(app, 'react', checkout(false), () => {})).toThrow(/not built/)
+  })
+
+  it('second run on the same app - refused, no duplicate overrides block', () => {
+    const repo = checkout(true)
+    const app = temp()
+    writeFileSync(join(app, 'pnpm-workspace.yaml'), '')
+    linkLocal(app, 'react', repo, () => {})
+    expect(() => linkLocal(app, 'react', repo, () => {})).toThrow(/already has/)
+  })
+
+  it('shellArgs - quotes args with spaces for the Windows shell only', () => {
+    expect(shellArgs(['pack', 'C:\\My Apps\\x'], true)).toEqual(['pack', '"C:\\My Apps\\x"'])
+    expect(shellArgs(['a b'], false)).toEqual(['a b'])
   })
 
   it('tarball names and the overrides block follow pnpm pack', () => {
